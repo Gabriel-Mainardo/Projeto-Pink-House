@@ -2,6 +2,7 @@ import { Heart, CheckCircle, Crown, Eye, Volume2, Play, Pause, Phone, Globe, Mes
 import { useNavigate } from 'react-router-dom';
 import { useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import AdPreviewModal from './AdPreviewModal';
 
 type Plan = "free" | "gold" | "rosa" | "black";
 
@@ -31,6 +32,7 @@ const CompanionCard = ({
   name,
   location,
   image,
+  gallery,
   adVideo,
   audioUrl,
   rating,
@@ -47,6 +49,7 @@ const CompanionCard = ({
   const navigate = useNavigate();
   const [liked, setLiked] = useState(false);
   const [showContactPopup, setShowContactPopup] = useState(false);
+  const [showAdPreview, setShowAdPreview] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -312,7 +315,7 @@ const CompanionCard = ({
               className="flex h-11 items-center justify-center rounded-xl border border-white/35 text-sm font-bold text-white transition-colors hover:bg-white/15"
               onClick={(e) => {
                 e.stopPropagation();
-                handleViewProfile();
+                setShowAdPreview(true);
               }}
             >
               <Eye className="mr-2 h-4 w-4" /> Ver Anúncio
@@ -426,6 +429,34 @@ const CompanionCard = ({
           </div>
         </div>,
         document.body
+      )}
+
+      {showAdPreview && (
+        <AdPreviewModal
+          profile={{
+            id,
+            name,
+            age,
+            location,
+            image,
+            gallery,
+            videos: adVideo ? [adVideo] : [],
+            audioUrl,
+            adVideo,
+            rating,
+            phone,
+            description,
+            pricePerHour,
+            isAvailable,
+            reliabilityScore: reliabilityPercent,
+            isVerified: plan !== 'free',
+          }}
+          onClose={() => setShowAdPreview(false)}
+          onContact={() => {
+            setShowAdPreview(false);
+            setShowContactPopup(true);
+          }}
+        />
       )}
     </>
   );

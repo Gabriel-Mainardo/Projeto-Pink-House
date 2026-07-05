@@ -31,6 +31,7 @@ import { metropolitanCities } from '../lib/recife-metropolitan-area';
 import { storiesService } from '../services/storiesService';
 import StoryViewer from '../components/StoryViewer';
 import CreateStoryModal from '../components/CreateStoryModal';
+import AdPreviewModal from '../components/AdPreviewModal';
 
 // --- Types ---
 interface FlashVideo {
@@ -237,6 +238,7 @@ const ProfileCard: React.FC<ProfileCardProps> = ({ profile, rank }) => {
   const isFeatured = profile.is_featured;
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
   const [showContactPopup, setShowContactPopup] = useState(false);
+  const [showAdPreview, setShowAdPreview] = useState(false);
   const featuredVideoUrl = profile.videos?.[0] || profile.video_url || '';
   const cardVideoRef = useRef<HTMLVideoElement>(null);
   const reliabilityScore = Math.max(0, Math.min(100, Number(profile.reliability_score) || 0));
@@ -427,7 +429,7 @@ const ProfileCard: React.FC<ProfileCardProps> = ({ profile, rank }) => {
             <div className="grid grid-cols-2 gap-3">
               <button
                 data-card-interactive="true"
-                onClick={(e) => { e.stopPropagation(); navigate(`/profile/${profile.id}`); }}
+                onClick={(e) => { e.stopPropagation(); setShowAdPreview(true); }}
                 className="flex items-center justify-center h-12 rounded-xl border border-white/40 hover:bg-white/15 transition-colors text-sm font-bold text-white backdrop-blur-sm"
               >
                 Ver Anúncio
@@ -446,6 +448,21 @@ const ProfileCard: React.FC<ProfileCardProps> = ({ profile, rank }) => {
           {showContactPopup && (
             <ContactPopup name={profile.name} phone={profile.phone} id={profile.id} onClose={() => setShowContactPopup(false)} />
           )}
+
+          {showAdPreview && (
+            <AdPreviewModal
+              profile={{
+                ...profile,
+                reliabilityScore,
+                rank,
+              }}
+              onClose={() => setShowAdPreview(false)}
+              onContact={() => {
+                setShowAdPreview(false);
+                setShowContactPopup(true);
+              }}
+            />
+          )}
         </div>
 
       </>
@@ -454,10 +471,11 @@ const ProfileCard: React.FC<ProfileCardProps> = ({ profile, rank }) => {
 
   // Card regular - design mais simples mas com fontes maiores
   return (
-    <div
-      className="group relative aspect-[3/4] cursor-pointer overflow-hidden rounded-2xl border border-gray-200 bg-gray-100 shadow-[0_10px_30px_-12px_rgba(0,0,0,0.25)] transition-all duration-300 hover:scale-[1.01] hover:shadow-xl"
-      onClick={() => navigate(`/profile/${profile.id}`)}
-    >
+    <>
+      <div
+        className="group relative aspect-[3/4] cursor-pointer overflow-hidden rounded-2xl border border-gray-200 bg-gray-100 shadow-[0_10px_30px_-12px_rgba(0,0,0,0.25)] transition-all duration-300 hover:scale-[1.01] hover:shadow-xl"
+        onClick={() => navigate(`/profile/${profile.id}`)}
+      >
       <img
         src={profile.image || '/default-profile.png'}
         alt={profile.name}
@@ -517,7 +535,7 @@ const ProfileCard: React.FC<ProfileCardProps> = ({ profile, rank }) => {
         {/* Buttons */}
         <div className="grid grid-cols-2 gap-2">
           <button
-            onClick={(e) => { e.stopPropagation(); navigate(`/profile/${profile.id}`); }}
+            onClick={(e) => { e.stopPropagation(); setShowAdPreview(true); }}
             className="flex items-center justify-center h-11 rounded-xl border border-white/30 hover:bg-white/15 transition-colors text-sm font-bold text-white"
           >
             Ver Anúncio
@@ -535,7 +553,22 @@ const ProfileCard: React.FC<ProfileCardProps> = ({ profile, rank }) => {
       {showContactPopup && (
         <ContactPopup name={profile.name} phone={profile.phone} id={profile.id} onClose={() => setShowContactPopup(false)} />
       )}
-    </div>
+      </div>
+
+      {showAdPreview && (
+        <AdPreviewModal
+          profile={{
+            ...profile,
+            reliabilityScore,
+          }}
+          onClose={() => setShowAdPreview(false)}
+          onContact={() => {
+            setShowAdPreview(false);
+            setShowContactPopup(true);
+          }}
+        />
+      )}
+    </>
   );
 };
 
