@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Limpando dados...</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .container {
+            text-align: center;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 40px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+        }
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 20px;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+        .spinner {
+            border: 5px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 5px solid white;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+            margin: 30px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .status {
+            font-size: 1.2em;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧹 Limpando dados...</h1>
+        <div class="spinner"></div>
+        <p class="status" id="status">Removendo cache e localStorage...</p>
+    </div>
+
+    <script>
+        const statusEl = document.getElementById('status');
+
+        setTimeout(() => {
+            statusEl.textContent = 'Limpando localStorage...';
+            localStorage.clear();
+        }, 500);
+
+        setTimeout(() => {
+            statusEl.textContent = 'Limpando sessionStorage...';
+            sessionStorage.clear();
+        }, 1000);
+
+        setTimeout(() => {
+            statusEl.textContent = 'Limpando cookies...';
+            document.cookie.split(";").forEach(function(c) {
+                document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+            });
+        }, 1500);
+
+        setTimeout(() => {
+            statusEl.textContent = '✅ Tudo limpo! Redirecionando...';
+        }, 2000);
+
+        setTimeout(() => {
+            window.location.href = '/';
+        }, 2500);
+    </script>
+</body>
+</html>

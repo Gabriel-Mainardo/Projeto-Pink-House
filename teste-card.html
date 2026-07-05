@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Card de Acompanhante - Teste</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'velvet-pink': {
+                            50: '#fdf2f8',
+                            100: '#fce7f3',
+                            200: '#fbcfe8',
+                            300: '#f9a8d4',
+                            400: '#f472b6',
+                            500: '#ec4899',
+                            600: '#db2777',
+                            700: '#be185d',
+                            800: '#9d174d',
+                            900: '#831843',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-sm mx-auto">
+        <!-- Card da Acompanhante -->
+        <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+            <!-- Imagem Principal -->
+            <div class="relative">
+                <img src="https://images.unsplash.com/photo-1494790108755-2616b332c74c?w=400&h=500&fit=crop&crop=face"
+                     alt="Gabriela"
+                     class="w-full h-64 object-cover">
+
+                <!-- Badge Online -->
+                <div class="absolute top-3 left-3 bg-green-500 text-white px-2 py-1 rounded-full text-xs font-medium flex items-center space-x-1">
+                    <div class="w-2 h-2 bg-white rounded-full"></div>
+                    <span>Online</span>
+                </div>
+
+                <!-- Badge Verificado -->
+                <div class="absolute top-3 right-3 bg-blue-500 text-white px-2 py-1 rounded-full text-xs font-medium">
+                    ✓ Verificado
+                </div>
+            </div>
+
+            <!-- Conteúdo do Card -->
+            <div class="p-4">
+                <!-- Nome e Idade -->
+                <div class="flex items-center justify-between mb-2">
+                    <h3 class="font-bold text-lg text-gray-800">Gabriela</h3>
+                    <span class="text-sm text-gray-600">23 anos</span>
+                </div>
+
+                <!-- Localização -->
+                <div class="flex items-center text-gray-600 text-sm mb-3">
+                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
+                    </svg>
+                    <span>Boa Viagem, Recife</span>
+                </div>
+
+                <!-- Descrição curta -->
+                <p class="text-sm text-gray-600 mb-3">Acompanhante carinhosa e educada</p>
+
+                <!-- Preço -->
+                <div class="flex items-center justify-between mb-3">
+                    <div>
+                        <span class="text-lg font-bold text-velvet-pink-600">R$ 200</span>
+                        <span class="text-sm text-gray-500">/hora</span>
+                    </div>
+                    <div class="flex items-center text-yellow-500">
+                        <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                        </svg>
+                        <span class="text-sm">4.8</span>
+                    </div>
+                </div>
+
+                <!-- Botões de Ação -->
+                <div class="flex space-x-2">
+                    <button class="flex-1 bg-velvet-pink-600 text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-velvet-pink-700 transition-colors">
+                        Ver Perfil
+                    </button>
+                    <button class="bg-green-500 text-white p-2 rounded-lg hover:bg-green-600 transition-colors">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Login - Dashboard</title>
+</head>
+<body>
+    <h1>Teste de Login para Dashboard</h1>
+    <button onclick="loginPending()">Login como Cadastro Pendente</button>
+    <button onclick="loginApproved()">Login como Aprovado</button>
+    <button onclick="clearLogin()">Limpar Login</button>
+
+    <script>
+        function loginPending() {
+            const userData = {
+                email: 'teste@exemplo.com',
+                nome: 'Maria Silva',
+                isLoggedIn: true,
+                isPending: true
+            };
+            localStorage.setItem('user', JSON.stringify(userData));
+            alert('Login como pendente criado! Agora acesse /dashboard');
+            window.location.href = '/dashboard';
+        }
+
+        function loginApproved() {
+            const userData = {
+                email: 'aprovado@exemplo.com',
+                nome: 'Julia Costa',
+                isLoggedIn: true,
+                isPending: false
+            };
+            localStorage.setItem('user', JSON.stringify(userData));
+            alert('Login como aprovado criado! Agora acesse /dashboard');
+            window.location.href = '/dashboard';
+        }
+
+        function clearLogin() {
+            localStorage.removeItem('user');
+            alert('Login removido!');
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste do Site</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #ff6b9d, #c44569);
+            color: white;
+            text-align: center;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+        }
+        .status {
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        .success {
+            color: #4ade80;
+        }
+        .links {
+            margin-top: 30px;
+        }
+        .links a {
+            color: white;
+            text-decoration: none;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 10px 20px;
+            border-radius: 10px;
+            margin: 10px;
+            display: inline-block;
+            transition: all 0.3s;
+        }
+        .links a:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎉 Site Funcionando!</h1>
+        <div class="status success">✅ Problema Resolvido!</div>
+        
+        <p>O site Faixa Rosa está funcionando corretamente agora!</p>
+        
+        <div class="links">
+            <a href="http://localhost:5173/" target="_blank">🌐 Acessar Site Principal</a>
+            <a href="http://localhost:5173/catalog" target="_blank">📋 Catálogo</a>
+            <a href="http://localhost:5173/register" target="_blank">📝 Cadastro</a>
+        </div>
+        
+        <h3>🔧 Correções Aplicadas:</h3>
+        <ul style="text-align: left; max-width: 400px; margin: 0 auto;">
+            <li>✅ Limpeza completa do node_modules</li>
+            <li>✅ Reinstalação de dependências</li>
+            <li>✅ Correção do PostCSS</li>
+            <li>✅ Simplificação do LocationContext</li>
+            <li>✅ Modo demo para Supabase</li>
+        </ul>
+    </div>
+</body>
+</html>
+
+
+

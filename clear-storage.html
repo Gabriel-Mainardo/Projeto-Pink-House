@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Limpar Storage</title>
+</head>
+<body>
+    <h1>Limpando dados...</h1>
+    <script>
+        // Limpar tudo
+        localStorage.clear();
+        sessionStorage.clear();
+        
+        // Limpar cookies
+        document.cookie.split(";").forEach(function(c) { 
+            document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+        });
+        
+        alert('Dados limpos! Redirecionando...');
+        window.location.href = '/';
+    </script>
+</body>
+</html>
