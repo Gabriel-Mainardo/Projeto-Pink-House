@@ -297,7 +297,7 @@ const ProfileCard: React.FC<ProfileCardProps> = ({ profile, rank }) => {
     return (
       <>
         <div
-          className="relative w-full aspect-[3/4] rounded-2xl overflow-hidden shadow-xl group cursor-pointer transition-all duration-300 hover:shadow-2xl hover:scale-[1.01]"
+          className="group relative aspect-[3/4] w-full cursor-pointer overflow-hidden rounded-2xl border border-gray-200 bg-gray-100 shadow-[0_10px_30px_-12px_rgba(0,0,0,0.35)] transition-all duration-300 hover:scale-[1.01] hover:shadow-2xl"
           onClick={handleCardNavigation}
         >
           {/* Image or inline video */}
@@ -319,7 +319,7 @@ const ProfileCard: React.FC<ProfileCardProps> = ({ profile, rank }) => {
               className="absolute inset-0 w-full h-full object-cover"
             />
           )}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent pointer-events-none" />
 
           {/* Badge Destaque / Boost */}
           <div className="absolute top-4 left-4">
@@ -361,13 +361,13 @@ const ProfileCard: React.FC<ProfileCardProps> = ({ profile, rank }) => {
                   e.stopPropagation();
                 }}
                 data-card-interactive="true"
-                className="pointer-events-auto relative z-30 w-11 h-11 md:w-13 md:h-13 bg-white/20 hover:bg-white/35 backdrop-blur-md rounded-full flex items-center justify-center border border-white/40 transition-all hover:scale-110 shadow-lg"
+                className="pointer-events-auto relative z-30 flex h-14 w-14 items-center justify-center rounded-full border border-white/40 bg-white/20 shadow-lg backdrop-blur-md transition-all hover:scale-110 hover:bg-white/35 md:h-16 md:w-16"
                 aria-label={`Reproduzir/Pausar video de ${profile.name}`}
               >
                 {isVideoPlaying ? (
-                  <Pause className="w-5 h-5 md:w-6 md:h-6 text-white fill-white" />
+                  <Pause className="h-6 w-6 fill-white text-white md:h-7 md:w-7" />
                 ) : (
-                  <Play className="w-5 h-5 md:w-6 md:h-6 text-white fill-white ml-0.5" />
+                  <Play className="ml-0.5 h-6 w-6 fill-white text-white md:h-7 md:w-7" />
                 )}
               </button>
             </div>
@@ -455,7 +455,7 @@ const ProfileCard: React.FC<ProfileCardProps> = ({ profile, rank }) => {
   // Card regular - design mais simples mas com fontes maiores
   return (
     <div
-      className="relative group rounded-2xl overflow-hidden bg-gray-100 border border-gray-200 hover:shadow-lg transition-all duration-300 cursor-pointer aspect-[3/4]"
+      className="group relative aspect-[3/4] cursor-pointer overflow-hidden rounded-2xl border border-gray-200 bg-gray-100 shadow-[0_10px_30px_-12px_rgba(0,0,0,0.25)] transition-all duration-300 hover:scale-[1.01] hover:shadow-xl"
       onClick={() => navigate(`/profile/${profile.id}`)}
     >
       <img
@@ -475,7 +475,13 @@ const ProfileCard: React.FC<ProfileCardProps> = ({ profile, rank }) => {
         </div>
       )}
 
-      <div className="absolute bottom-0 left-0 right-0 px-4 pb-4 pt-24" style={{background: 'linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.6) 55%, transparent 100%)'}}>
+      <div className="absolute bottom-0 left-0 right-0 px-4 pb-4 pt-28" style={{background: 'linear-gradient(to top, rgba(0,0,0,0.94) 0%, rgba(0,0,0,0.68) 56%, transparent 100%)'}}>
+        {profile.description && (
+          <p className="mb-3 line-clamp-2 text-sm italic font-medium leading-snug text-white/80">
+            &ldquo;{profile.description}&rdquo;
+          </p>
+        )}
+
         {/* Name + status */}
         <div className="flex items-center gap-2 mb-2">
           <h3 className="text-xl font-bold text-white leading-tight">{profile.name}, {profile.age}</h3>
@@ -485,10 +491,28 @@ const ProfileCard: React.FC<ProfileCardProps> = ({ profile, rank }) => {
         </div>
 
         {/* Location */}
-        <p className="text-gray-300 text-sm flex items-center gap-1 font-medium mb-5">
+        <p className="mb-4 flex items-center gap-1 text-sm font-medium text-gray-300">
           <MapPin className="w-3.5 h-3.5 text-pink-300 flex-shrink-0" />
           <span className="truncate">{profile.location}</span>
         </p>
+
+        <div className="mb-4">
+          <div className="mb-1 flex items-center justify-between">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-white/75">
+              Confiabilidade: {reliabilityScore}%
+            </span>
+          </div>
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/20">
+            <div
+              className={`h-full rounded-full ${
+                reliabilityScore >= 80 ? 'bg-green-400' :
+                reliabilityScore >= 50 ? 'bg-yellow-400' :
+                'bg-red-500'
+              }`}
+              style={{ width: `${reliabilityScore}%` }}
+            />
+          </div>
+        </div>
 
         {/* Buttons */}
         <div className="grid grid-cols-2 gap-2">
@@ -496,7 +520,7 @@ const ProfileCard: React.FC<ProfileCardProps> = ({ profile, rank }) => {
             onClick={(e) => { e.stopPropagation(); navigate(`/profile/${profile.id}`); }}
             className="flex items-center justify-center h-11 rounded-xl border border-white/30 hover:bg-white/15 transition-colors text-sm font-bold text-white"
           >
-            Ver Perfil
+            Ver Anúncio
           </button>
           <button
             onClick={(e) => { e.stopPropagation(); setShowContactPopup(true); }}
@@ -809,18 +833,18 @@ const Index: React.FC = () => {
     <AgeGateWrapper>
       <div className="min-h-screen bg-white relative">
         {/* Filter Bar: Cidade + Gênero */}
-        <div className="bg-white border-b border-gray-100 px-3 md:px-8 py-1.5 md:py-2">
-          <div className="max-w-[1180px] mx-auto flex flex-col items-center justify-center gap-2.5 md:flex-row md:items-center md:justify-center md:gap-6 md:px-8 xl:px-14">
+        <div className="bg-white border-b border-gray-100">
+          <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 py-3 sm:flex-row sm:px-6 lg:px-8">
 
             {/* Cidade / Bairro */}
-            <div className="relative shrink-0 flex justify-center translate-x-6 md:translate-x-0">
+            <div className="relative flex shrink-0 justify-center">
               <button
                 onClick={() => setShowCityDropdown(!showCityDropdown)}
-                className="flex items-center gap-1.5 text-xs md:text-sm font-medium text-gray-700 hover:text-[#d91d83] transition-colors bg-gray-100 hover:bg-gray-200 px-3 py-1.5 md:py-2 rounded-lg"
+                className="flex items-center gap-2 rounded-xl bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200 hover:text-[#d91d83]"
               >
-                <MapPin className="w-3.5 h-3.5 md:w-4 md:h-4 text-[#d91d83]" />
-                <span className="max-w-[120px] md:max-w-none truncate">{selectedNeighborhood || 'Recife RMR'}</span>
-                <ChevronDown className={`w-3 h-3 md:w-4 md:h-4 transition-transform duration-200 ${showCityDropdown ? 'rotate-180' : ''}`} />
+                <MapPin className="h-4 w-4 text-[#d91d83]" />
+                <span className="max-w-[180px] truncate sm:max-w-none">{selectedNeighborhood || 'Recife RMR'}</span>
+                <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${showCityDropdown ? 'rotate-180' : ''}`} />
               </button>
 
               {showCityDropdown && (
@@ -873,12 +897,12 @@ const Index: React.FC = () => {
             </div>
 
             {/* Gênero */}
-            <div className="flex w-full flex-1 min-w-0 bg-gray-100 p-0.5 md:flex-none md:w-auto md:p-0.5 rounded-md md:rounded-lg md:shrink-0">
+            <div className="flex w-full min-w-0 flex-1 rounded-xl bg-gray-100 p-1 sm:w-auto sm:flex-none sm:shrink-0">
               {(['Mulheres', 'Homens', 'Trans'] as const).map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`flex-1 min-w-0 px-2 sm:px-3 md:flex-none md:px-4 lg:px-5 py-1 md:py-1.5 rounded-md text-[11px] sm:text-xs md:text-xs lg:text-sm font-semibold whitespace-nowrap transition-all ${
+                  className={`min-w-0 flex-1 rounded-lg px-4 py-1.5 text-sm font-bold transition-all sm:flex-none sm:px-6 ${
                     activeTab === tab
                       ? 'bg-[#d91d83] text-white shadow-md'
                       : 'text-gray-500 hover:text-gray-700'

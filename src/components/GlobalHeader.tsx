@@ -159,9 +159,9 @@ const GlobalHeader = () => {
 
   return (
     <>
-      <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-100 px-3 py-1.5 md:px-8 shadow-sm">
-        <div className="mx-auto max-w-[1180px]">
-          <div className="relative flex items-center justify-between h-14 md:h-16">
+      <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-200/80 shadow-sm">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+          <div className="relative flex h-16 items-center justify-between">
             <div className="flex items-center">
               <button
                 onClick={() => setShowMobileMenu(true)}
@@ -173,7 +173,7 @@ const GlobalHeader = () => {
               {!isAuthenticated && (
                 <button
                   onClick={() => setShowRegisterPrompt(true)}
-                  className="hidden md:flex items-center justify-center h-10 px-6 ml-4 rounded-xl bg-pink-100 hover:bg-pink-200/50 text-[#da0b7d] text-sm font-bold transition-all shadow-sm"
+                  className="ml-4 hidden h-10 items-center justify-center rounded-xl bg-pink-100 px-6 text-sm font-bold text-[#da0b7d] shadow-sm transition-all hover:bg-pink-200/50 md:flex"
                 >
                   Criar conta grátis
                 </button>
@@ -184,21 +184,21 @@ const GlobalHeader = () => {
               className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 flex cursor-pointer items-center"
               onClick={() => navigate('/')}
             >
-              <h1 className="text-xl md:text-2xl font-extrabold tracking-tight">
+              <h1 className="text-lg font-extrabold tracking-tight sm:text-xl md:text-2xl">
                 <span className="text-gray-900">Pink</span>
                 <span className="text-[#da0b7d]">House</span>
               </h1>
             </div>
 
-            <div className="flex items-center gap-2 md:gap-3">
+            <div className="flex items-center gap-1 sm:gap-2 md:gap-3">
               {/* PinkCoins Badge - code.html style */}
               <div 
                 onClick={() => navigate('/pinkpoints')}
-                className="flex items-center gap-2 px-3 h-10 rounded-xl bg-gray-100 hover:bg-gray-200 transition-colors cursor-pointer group"
+                className="group flex h-10 w-10 cursor-pointer items-center justify-center gap-2 rounded-xl bg-gray-100 px-0 transition-colors hover:bg-gray-200 min-[440px]:w-auto min-[440px]:justify-start min-[440px]:px-3"
               >
                 <CircleDollarSign className="h-5 w-5 text-[#da0b7d] group-hover:scale-110 transition-transform flex-shrink-0" />
-                <span className="text-sm font-bold text-gray-900 hidden sm:inline">Pink Coins : 3.000</span>
-                <span className="text-sm font-bold text-gray-900 sm:hidden">3.000</span>
+                <span className="hidden text-sm font-bold text-gray-900 sm:inline">PinkCoins : 3.000</span>
+                <span className="hidden text-sm font-bold text-gray-900 min-[440px]:inline sm:hidden">3.000</span>
               </div>
 
               <button

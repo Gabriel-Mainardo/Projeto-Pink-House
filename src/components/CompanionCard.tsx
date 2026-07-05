@@ -1,4 +1,4 @@
-import { Heart, CheckCircle, Crown, Eye, Volume2, Play, Pause, Phone, Bell, Globe, MessageSquare, X, Gift } from 'lucide-react';
+import { Heart, CheckCircle, Crown, Eye, Volume2, Play, Pause, Phone, Globe, MessageSquare, X, Gift } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
@@ -55,6 +55,7 @@ const CompanionCard = ({
   const [videoMuted, setVideoMuted] = useState(true);
 
   const isAmbassador = plan === 'black';
+  const reliabilityPercent = 92;
 
   const handleViewProfile = () => {
     navigate(`/perfil/${id}`);
@@ -71,25 +72,11 @@ const CompanionCard = ({
   const formatLocation = (location: string) => {
     if (!location) return '';
 
-    // Remove tudo antes da cidade, mantém apenas "Cidade - Estado"
     const parts = location.split(' - ').map(p => p.trim()).filter(p => p);
 
     if (parts.length >= 3) {
-      // Bairro - Cidade - Estado
       const neighborhood = parts[parts.length - 3];
       const city = parts[parts.length - 2];
-      const state = parts[parts.length - 1];
-
-      const stateMap: { [key: string]: string } = {
-        'Pernambuco': 'PE', 'São Paulo': 'SP', 'Rio de Janeiro': 'RJ', 'Minas Gerais': 'MG',
-        'Bahia': 'BA', 'Ceará': 'CE', 'Paraíba': 'PB', 'Rio Grande do Norte': 'RN',
-        'Alagoas': 'AL', 'Sergipe': 'SE', 'Piauí': 'PI', 'Maranhão': 'MA',
-        'Amazonas': 'AM', 'Pará': 'PA', 'Acre': 'AC', 'Rondônia': 'RO',
-        'Roraima': 'RR', 'Amapá': 'AP', 'Tocantins': 'TO', 'Goiás': 'GO',
-        'Mato Grosso': 'MT', 'Mato Grosso do Sul': 'MS', 'Distrito Federal': 'DF',
-        'Paraná': 'PR', 'Santa Catarina': 'SC', 'Rio Grande do Sul': 'RS',
-        'Espírito Santo': 'ES'
-      };
 
       return `${city} - ${neighborhood}`;
     }
@@ -148,34 +135,34 @@ const CompanionCard = ({
   const waveHeights = [40, 60, 30, 80, 50, 90, 40, 70, 30, 50, 20, 60, 80, 40, 30];
 
   return (
-    <div className={`relative bg-white rounded-3xl overflow-hidden shadow-lg border-[3px] h-full flex flex-col ${isAmbassador ? 'border-yellow-400' : 'border-transparent'}`}
-      onClick={handleViewProfile}
-      style={{ cursor: 'pointer' }}
-    >
-      {/* Image / Video Container */}
-      <div className="relative h-72 w-full bg-gray-900">
+    <>
+      <div
+        className={`group relative aspect-[3/4] w-full cursor-pointer overflow-hidden rounded-2xl border bg-gray-100 shadow-[0_10px_30px_-12px_rgba(0,0,0,0.28)] transition-all duration-300 hover:scale-[1.01] hover:shadow-xl ${
+          isAmbassador ? 'border-yellow-400 shadow-yellow-400/20' : 'border-gray-200'
+        }`}
+        onClick={handleViewProfile}
+      >
         {adVideo ? (
           <>
             <video
               ref={videoRef}
               src={adVideo}
-              className="w-full h-full object-cover object-center"
+              className="absolute inset-0 h-full w-full object-cover object-center transition-transform duration-700 group-hover:scale-105"
               autoPlay
               muted={videoMuted}
               loop
               playsInline
               onClick={(e) => { e.stopPropagation(); setVideoMuted(m => !m); }}
             />
-            {/* Botão mute */}
             <button
               onClick={(e) => { e.stopPropagation(); setVideoMuted(m => !m); }}
-              className="absolute bottom-10 right-3 bg-black/50 hover:bg-black/70 text-white p-1.5 rounded-full transition-colors z-10"
+              className="absolute left-1/2 top-[34%] z-20 flex h-11 w-11 -translate-x-1/2 items-center justify-center rounded-full border border-white/40 bg-white/20 text-white shadow-lg backdrop-blur-md transition-all hover:scale-110 hover:bg-white/35"
               title={videoMuted ? 'Ativar som' : 'Silenciar'}
             >
               {videoMuted ? (
-                <Volume2 className="w-3.5 h-3.5 opacity-50" />
+                <Volume2 className="h-5 w-5 opacity-50" />
               ) : (
-                <Volume2 className="w-3.5 h-3.5" />
+                <Volume2 className="h-5 w-5" />
               )}
             </button>
           </>
@@ -183,56 +170,50 @@ const CompanionCard = ({
           <img
             src={image}
             alt={name}
-            className="w-full h-full object-cover object-center"
+            className="absolute inset-0 h-full w-full object-cover object-center transition-transform duration-700 group-hover:scale-105"
             onError={(e) => {
               const target = e.target as HTMLImageElement;
               target.src = "/default-profile.png";
             }}
           />
         )}
-        {/* Overlay de preço */}
-        {pricePerHour && (
-          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/75 via-black/30 to-transparent px-4 py-3 pointer-events-none">
-            <span className="text-white font-bold text-lg drop-shadow">
-              {String(pricePerHour).startsWith('R$') ? pricePerHour : `R$ ${Number(pricePerHour).toLocaleString('pt-BR', { minimumFractionDigits: 0 })}`}/h
+
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/95 via-black/55 to-transparent" />
+
+        <div className="absolute left-3 top-3 z-20 flex flex-col items-start gap-2">
+          {isAmbassador && (
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-yellow-400/90 shadow-lg backdrop-blur-sm">
+              <Crown className="h-5 w-5 text-yellow-800" />
+            </div>
+          )}
+
+          <div className={`${isAvailable ? 'bg-green-500/90' : 'bg-red-500/90'} flex items-center gap-1.5 rounded-full px-2.5 py-1 shadow-md backdrop-blur-md`}>
+            <span className="h-1.5 w-1.5 rounded-full bg-white" />
+            <span className="text-[10px] font-bold uppercase tracking-wider text-white">
+              {isAvailable ? 'Disponível' : 'Offline'}
             </span>
           </div>
-        )}
 
-        {/* Top Left: Ambassador Badge */}
-        {isAmbassador && (
-          <div className="absolute top-4 left-4">
-            <div className="bg-yellow-400/90 backdrop-blur-sm p-2 rounded-full shadow-lg">
-              <Crown className="w-5 h-5 text-yellow-800" />
-            </div>
-          </div>
-        )}
-
-        {/* Boost Badge - Subida Ativa */}
-        {hasBoost && (
-          <div className={`absolute ${isAmbassador ? 'top-16' : 'top-4'} left-4`}>
+          {hasBoost && (
             <div
-              className="backdrop-blur-sm px-3 py-1.5 rounded-full shadow-lg flex items-center space-x-1 animate-pulse"
-              style={{
-                backgroundColor: `${boostColor}E6`, // E6 = 90% opacity
-              }}
+              className="flex items-center gap-1 rounded-full px-2.5 py-1 shadow-lg backdrop-blur-sm"
+              style={{ backgroundColor: `${boostColor}E6` }}
             >
-              <svg className="w-3.5 h-3.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+              <svg className="h-3.5 w-3.5 text-white" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" />
               </svg>
-              <span className="text-[10px] font-bold text-white uppercase tracking-wider">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-white">
                 {'Disponivel agora'}
               </span>
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
-        {/* Top Right: Verified Badge & Heart */}
-        <div className="absolute top-4 right-4 flex items-center space-x-2">
+        <div className="absolute right-3 top-3 z-20 flex items-center gap-2">
           {plan !== 'free' && (
-            <div className="bg-white/90 backdrop-blur-sm px-2 py-1 rounded-full flex items-center space-x-1 shadow-sm">
-              <CheckCircle className="w-3 h-3 text-green-700" />
-              <span className="text-[10px] font-bold text-green-700 uppercase tracking-wide">Verificada</span>
+            <div className="flex items-center gap-1 rounded-full bg-white/90 px-2 py-1 shadow-sm backdrop-blur-sm">
+              <CheckCircle className="h-3 w-3 text-green-700" />
+              <span className="text-[10px] font-bold uppercase tracking-wide text-green-700">Verificada</span>
             </div>
           )}
           <button
@@ -240,87 +221,121 @@ const CompanionCard = ({
               e.stopPropagation();
               setLiked(!liked);
             }}
-            className="bg-white/90 backdrop-blur-sm p-2 rounded-full shadow-sm hover:bg-white transition-colors"
+            className="rounded-full bg-white/90 p-2 shadow-sm backdrop-blur-sm transition-colors hover:bg-white"
+            aria-label={liked ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
           >
             {liked ? (
-              <Heart className="w-5 h-5 text-pink-500 fill-current" />
+              <Heart className="h-5 w-5 fill-current text-pink-500" />
             ) : (
-              <Heart className="w-5 h-5 text-gray-600" />
+              <Heart className="h-5 w-5 text-gray-600" />
             )}
           </button>
         </div>
-      </div>
 
-      {/* Card Content */}
-      <div className="p-4 flex-1 flex flex-col">
-        {/* Name + Availability */}
-        <div className="flex items-center justify-between mb-0.5">
-          <h3 className="text-xl font-bold text-gray-900">
-            {name}
-          </h3>
-          <div className="flex items-center">
-            <div className={`w-2 h-2 rounded-full mr-1.5 ${isAvailable ? 'bg-green-500' : 'bg-red-500'}`}></div>
-            <span className={`text-[10px] font-bold uppercase tracking-wide ${isAvailable ? 'text-green-600' : 'text-red-500'}`}>
-              {isAvailable ? 'Online' : 'Offline'}
+        <div
+          className="absolute inset-x-0 bottom-0 z-10 flex flex-col px-4 pb-4 pt-28"
+          style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.94) 0%, rgba(0,0,0,0.68) 58%, transparent 100%)' }}
+        >
+          {pricePerHour && (
+            <span className="mb-3 inline-flex w-fit rounded-full bg-white/15 px-3 py-1 text-sm font-bold text-white shadow-sm backdrop-blur-sm">
+              {String(pricePerHour).startsWith('R$') ? pricePerHour : `R$ ${Number(pricePerHour).toLocaleString('pt-BR', { minimumFractionDigits: 0 })}`}/h
             </span>
+          )}
+
+          {description && (
+            <p className="mb-3 line-clamp-2 text-sm italic font-medium leading-snug text-white/80">
+              &ldquo;{description}&rdquo;
+            </p>
+          )}
+
+          <div className="mb-2 flex items-center gap-2">
+            <h3 className="truncate text-xl font-bold leading-tight text-white">
+              {name}{age ? `, ${age}` : ''}
+            </h3>
+            {isAvailable && (
+              <span className="h-2.5 w-2.5 flex-shrink-0 rounded-full bg-green-500 shadow-[0_0_6px_rgba(34,197,94,0.7)]" />
+            )}
           </div>
-        </div>
 
-        {/* City / Neighborhood */}
-        <p className="text-sm text-gray-500 mb-1.5">
-          {formatLocation(location)}{age ? ` · ${age} anos` : ''}
-        </p>
-
-        {/* Description - italic */}
-        {description && (
-          <p className="text-xs text-gray-500 leading-relaxed mb-2 line-clamp-3 italic">
-            {description}
+          <p className="mb-4 flex items-center gap-1 text-sm font-medium text-gray-300">
+            <Globe className="h-3.5 w-3.5 flex-shrink-0 text-pink-300" />
+            <span className="truncate">{formatLocation(location)}</span>
           </p>
-        )}
 
-        {/* Reliability Bar */}
-        <div className="mb-3">
-          <div className="w-full bg-gray-200 rounded-full h-1 overflow-hidden">
-            <div className="bg-pink-400 h-1 rounded-full w-[92%]"></div>
-          </div>
-        </div>
-
-        {/* Audio Player */}
-        {audioUrl && audioUrl.trim() !== '' && (
-          <div className="bg-pink-50 rounded-lg p-3 flex items-center space-x-3 mb-4 cursor-pointer hover:bg-pink-100 transition-colors"
-            onClick={toggleAudio}
-          >
-            <div className="bg-pink-100 p-1.5 rounded-full">
-              {isPlaying ? (
-                <Pause className="w-4 h-4 text-pink-700" />
-              ) : (
-                <Play className="w-4 h-4 text-pink-700" />
-              )}
+          <div className="mb-4">
+            <div className="mb-1 flex items-center justify-between">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-white/75">
+                Confiabilidade: {reliabilityPercent}%
+              </span>
             </div>
-            <span className="text-xs font-medium text-pink-700" style={{ }}>Ouça minha voz</span>
-            <div className="flex-1 h-6 flex items-center">
-              {/* Fake Waveform Visual */}
-              <div className="flex items-center space-x-[2px] h-full w-full opacity-50">
-                {waveHeights.map((height, i) => {
-                  const progress = duration > 0 ? currentTime / duration : 0;
-                  const isFilled = i < Math.floor(progress * waveHeights.length);
-                  return (
-                    <div
-                      key={i}
-                      className="w-1 rounded-full"
-                      style={{
-                        height: `${height}%`,
-                        backgroundColor: isFilled ? '#be185d' : '#f9a8d4'
-                      }}
-                    ></div>
-                  );
-                })}
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/20">
+              <div className="h-full rounded-full bg-green-400" style={{ width: `${reliabilityPercent}%` }} />
+            </div>
+          </div>
+
+          {audioUrl && audioUrl.trim() !== '' && (
+            <div
+              className="mb-4 flex cursor-pointer items-center gap-3 rounded-xl bg-white/10 p-3 text-white backdrop-blur-md transition-colors hover:bg-white/20"
+              onClick={toggleAudio}
+            >
+              <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-pink-100">
+                {isPlaying ? (
+                  <Pause className="h-4 w-4 text-pink-700" />
+                ) : (
+                  <Play className="h-4 w-4 text-pink-700" />
+                )}
+              </div>
+              <span className="text-xs font-bold text-white">Ouça minha voz</span>
+              <div className="flex h-6 flex-1 items-center">
+                <div className="flex h-full w-full items-center gap-[2px] opacity-75">
+                  {waveHeights.map((height, i) => {
+                    const progress = duration > 0 ? currentTime / duration : 0;
+                    const isFilled = i < Math.floor(progress * waveHeights.length);
+                    return (
+                      <div
+                        key={i}
+                        className="w-1 rounded-full"
+                        style={{
+                          height: `${height}%`,
+                          backgroundColor: isFilled ? '#ffffff' : 'rgba(255,255,255,0.45)'
+                        }}
+                      />
+                    );
+                  })}
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Audio Element */}
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              className="flex h-11 items-center justify-center rounded-xl border border-white/35 text-sm font-bold text-white transition-colors hover:bg-white/15"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleViewProfile();
+              }}
+            >
+              <Eye className="mr-2 h-4 w-4" /> Ver Anúncio
+            </button>
+            {isAvailable ? (
+              <button
+                className="flex h-11 items-center justify-center gap-1.5 rounded-xl bg-[#da0b7d] text-sm font-bold text-white shadow-md transition-colors hover:bg-[#b00965]"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowContactPopup(true);
+                }}
+              >
+                <MessageSquare className="h-4 w-4 fill-current" />
+                CONTATO
+              </button>
+            ) : (
+              <div className="flex h-11 items-center justify-center rounded-xl bg-white/15 text-center text-xs font-bold text-white/70">
+                Offline
+              </div>
+            )}
+          </div>
+        </div>
+
         {audioUrl && (
           <audio
             ref={audioRef}
@@ -331,120 +346,88 @@ const CompanionCard = ({
             preload="metadata"
           />
         )}
+      </div>
 
-        {/* Spacer para empurrar botões para o final */}
-        <div className="flex-1"></div>
-
-        {/* Actions */}
-        <div className="space-y-2 mb-3">
-          {isAvailable ? (
-            <button
-              className="w-full bg-pink-500 hover:bg-pink-600 text-white font-bold py-2.5 rounded-full shadow-md shadow-pink-200 transition-all text-sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowContactPopup(true);
-              }}
-            >
-              Enviar mensagem
-            </button>
-          ) : (
-            <div className="w-full bg-gray-100 text-gray-500 text-center font-medium py-2.5 rounded-full text-xs">
-              Offline — contatos indisponíveis
-            </div>
-          )}
-          <button
-            className="w-full bg-transparent border border-pink-400 text-pink-500 font-bold py-2.5 rounded-full hover:bg-pink-50 transition-all text-sm flex items-center justify-center"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleViewProfile();
-            }}
-          >
-            <Eye className="w-4 h-4 mr-2" /> Ver perfil
-          </button>
-        </div>
-
-        {/* Contact Popup */}
-        {showContactPopup && typeof document !== 'undefined' && createPortal(
+      {showContactPopup && typeof document !== 'undefined' && createPortal(
+        <div
+          className="fixed inset-0 z-[130] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+          onClick={(e) => { e.stopPropagation(); setShowContactPopup(false); }}
+        >
           <div
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[130] flex items-center justify-center p-4"
-            onClick={(e) => { e.stopPropagation(); setShowContactPopup(false); }}
+            className="mx-4 w-full max-w-xs rounded-2xl bg-white p-5 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
           >
-            <div
-              className="bg-white rounded-2xl p-5 mx-4 w-full max-w-xs shadow-xl"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex items-center justify-between mb-4">
-                <h4 className="text-sm font-bold text-gray-800">Falar com {name}</h4>
-                <button
-                  onClick={(e) => { e.stopPropagation(); setShowContactPopup(false); }}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-              <div className="space-y-2.5">
-                {phone && phone.trim() !== '' && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      window.open(`https://wa.me/${formatPhoneForWhatsApp(phone)}?text=Olá ${name}, vi seu perfil no Pink House e gostaria de conversar.`, '_blank');
-                      setShowContactPopup(false);
-                    }}
-                    className="w-full flex items-center gap-3 py-2.5 px-4 rounded-xl bg-green-50 hover:bg-green-100 transition-colors"
-                  >
-                    <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center">
-                      <Phone className="w-4 h-4 text-white" />
-                    </div>
-                    <span className="text-sm font-medium text-green-700">WhatsApp</span>
-                  </button>
-                )}
+            <div className="mb-4 flex items-center justify-between">
+              <h4 className="text-sm font-bold text-gray-800">Falar com {name}</h4>
+              <button
+                onClick={(e) => { e.stopPropagation(); setShowContactPopup(false); }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="space-y-2.5">
+              {phone && phone.trim() !== '' && (
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    navigate(`/mensagens?companion_id=${id}`);
+                    window.open(`https://wa.me/${formatPhoneForWhatsApp(phone)}?text=Olá ${name}, vi seu perfil no Pink House e gostaria de conversar.`, '_blank');
                     setShowContactPopup(false);
                   }}
-                  className="w-full flex items-center gap-3 py-2.5 px-4 rounded-xl bg-pink-50 hover:bg-pink-100 transition-colors"
+                  className="flex w-full items-center gap-3 rounded-xl bg-green-50 px-4 py-2.5 transition-colors hover:bg-green-100"
                 >
-                  <div className="w-8 h-8 rounded-full bg-pink-500 flex items-center justify-center">
-                    <MessageSquare className="w-4 h-4 text-white" />
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-500">
+                    <Phone className="h-4 w-4 text-white" />
                   </div>
-                  <span className="text-sm font-medium text-pink-700">Mensagem no app</span>
+                  <span className="text-sm font-medium text-green-700">WhatsApp</span>
                 </button>
-                {phone && phone.trim() !== '' && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      window.location.href = `tel:${phone}`;
-                      setShowContactPopup(false);
-                    }}
-                    className="w-full flex items-center gap-3 py-2.5 px-4 rounded-xl bg-blue-50 hover:bg-blue-100 transition-colors"
-                  >
-                    <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center">
-                      <Phone className="w-4 h-4 text-white" />
-                    </div>
-                    <span className="text-sm font-medium text-blue-700">Ligar</span>
-                  </button>
-                )}
+              )}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/mensagens?companion_id=${id}`);
+                  setShowContactPopup(false);
+                }}
+                className="flex w-full items-center gap-3 rounded-xl bg-pink-50 px-4 py-2.5 transition-colors hover:bg-pink-100"
+              >
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-pink-500">
+                  <MessageSquare className="h-4 w-4 text-white" />
+                </div>
+                <span className="text-sm font-medium text-pink-700">Mensagem no app</span>
+              </button>
+              {phone && phone.trim() !== '' && (
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    // Presente - futuro
+                    window.location.href = `tel:${phone}`;
+                    setShowContactPopup(false);
                   }}
-                  className="w-full flex items-center gap-3 py-2.5 px-4 rounded-xl bg-purple-50 hover:bg-purple-100 transition-colors"
+                  className="flex w-full items-center gap-3 rounded-xl bg-blue-50 px-4 py-2.5 transition-colors hover:bg-blue-100"
                 >
-                  <div className="w-8 h-8 rounded-full bg-purple-500 flex items-center justify-center">
-                    <Gift className="w-4 h-4 text-white" />
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-500">
+                    <Phone className="h-4 w-4 text-white" />
                   </div>
-                  <span className="text-sm font-medium text-purple-700">Enviar presente</span>
+                  <span className="text-sm font-medium text-blue-700">Ligar</span>
                 </button>
-              </div>
+              )}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  // Presente - futuro
+                }}
+                className="flex w-full items-center gap-3 rounded-xl bg-purple-50 px-4 py-2.5 transition-colors hover:bg-purple-100"
+              >
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-500">
+                  <Gift className="h-4 w-4 text-white" />
+                </div>
+                <span className="text-sm font-medium text-purple-700">Enviar presente</span>
+              </button>
             </div>
-          </div>,
-          document.body
-        )}
-      </div>
-    </div>
+          </div>
+        </div>,
+        document.body
+      )}
+    </>
   );
 };
 
