@@ -4,10 +4,13 @@ import { createClient, type EmailOtpType, type Session, type User } from '@supab
 import { supabase } from '../lib/supabase';
 import { markEmailAsVerified } from '../services/verificationService';
 
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://demo.supabase.co';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'demo-key';
+
 const EMAIL_CONFIRM_TYPES = ['signup', 'email', 'magiclink', 'email_change', 'recovery'];
 const supabaseImplicitCallback = createClient(
-  import.meta.env.VITE_SUPABASE_URL || '',
-  import.meta.env.VITE_SUPABASE_ANON_KEY || '',
+  supabaseUrl,
+  supabaseAnonKey,
   {
     auth: {
       flowType: 'implicit',

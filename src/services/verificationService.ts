@@ -1,13 +1,16 @@
 import { supabase } from '../lib/supabase';
 import { createClient } from '@supabase/supabase-js';
 
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://demo.supabase.co';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'demo-key';
+
 // Cliente separado com flow implicit para OTP/magic links de email.
 // O flow PKCE exige code_verifier no localStorage do mesmo browser — falha se
 // o link for aberto em outro dispositivo/browser. O implicit flow embute o token
 // no hash da URL e funciona universalmente.
 const supabaseImplicit = createClient(
-  import.meta.env.VITE_SUPABASE_URL || '',
-  import.meta.env.VITE_SUPABASE_ANON_KEY || '',
+  supabaseUrl,
+  supabaseAnonKey,
   { auth: { flowType: 'implicit', persistSession: false } }
 );
 
