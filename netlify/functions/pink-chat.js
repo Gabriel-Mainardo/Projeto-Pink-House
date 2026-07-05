@@ -1,6 +1,5 @@
 const invokeUrl = 'https://integrate.api.nvidia.com/v1/chat/completions';
-const defaultModel = 'kimi-k2.5';
-const fallbackApiKey = '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';
+const defaultModel = 'moonshotai/kimi-k2.6';
 
 const siteContext = `
 Voce e Pink, a assistente oficial da House Pink.
@@ -67,7 +66,7 @@ exports.handler = async (event) => {
     };
   }
 
-  const apiKey = process.env.NVIDIA_API_KEY || fallbackApiKey;
+  const apiKey = process.env.NVIDIA_API_KEY;
   const model = process.env.NVIDIA_CHAT_MODEL || defaultModel;
 
   if (!apiKey) {

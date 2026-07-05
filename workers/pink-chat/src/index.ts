@@ -125,7 +125,7 @@ export default {
           Accept: 'application/json',
         },
         body: JSON.stringify({
-          model: env.NVIDIA_CHAT_MODEL || 'moonshotai/kimi-k2-instruct',
+          model: env.NVIDIA_CHAT_MODEL || 'moonshotai/kimi-k2.6',
           messages: buildMessages(payload),
           temperature: 0.5,
           top_p: 0.9,

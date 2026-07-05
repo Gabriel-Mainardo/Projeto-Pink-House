@@ -1,5 +1,5 @@
 const ASAAS_API_KEY = Deno.env.get('ASAAS_API_KEY') || '';
-const ASAAS_API_URL = Deno.env.get('ASAAS_API_URL') || 'https://sandbox.asaas.com/api/v3';
+const ASAAS_API_URL = Deno.env.get('ASAAS_API_URL') || 'https://api-sandbox.asaas.com/v3';
 
 export interface AsaasCustomer {
   name: string;
