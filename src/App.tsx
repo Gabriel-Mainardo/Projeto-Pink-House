@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useLocation, matchPath } from "react-router-dom";
 import { useState, useEffect, useRef, Component, ErrorInfo, ReactNode } from "react";
 import Index from "./pages/Index";
-import Profile from "./pages/Profile";
+import ProfilePreviewRoute from "./pages/ProfilePreviewRoute";
 import Catalog from "./pages/Catalog";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -38,7 +38,6 @@ import PinkPoints from "./pages/PinkPoints";
 import GanharPinkPoints from "./pages/GanharPinkPoints";
 import ConverterPinkPoints from "./pages/ConverterPinkPoints";
 import MinhasRositas from "./pages/MinhasRositas";
-import PerfilTest from "./pages/PerfilTest";
 import EditarPerfil from "./pages/EditarPerfil";
 import ProtectedRoute from "./components/ProtectedRoute";
 import TermsOfUse from "./pages/TermsOfUse";
@@ -73,7 +72,9 @@ const queryClient = new QueryClient({
 
 const routesWithLocalFooter = [
   "/",
+  "/profile",
   "/profile/:id",
+  "/perfil/:id",
   "/catalog",
   "/photo-upload",
   "/pricing",
@@ -162,8 +163,10 @@ const AppContent = () => {
   }, []);
 
   // Rotas onde a barra inferior deve ser escondida
-  const hideBottomNavRoutes = ['/client-signup', '/client-login', '/client-register'];
-  const shouldHideBottomNav = hideBottomNavRoutes.includes(location.pathname);
+  const hideBottomNavRoutes = ['/client-signup', '/client-login', '/client-register', '/profile', '/profile/:id', '/perfil/:id'];
+  const shouldHideBottomNav = hideBottomNavRoutes.some((route) =>
+    Boolean(matchPath({ path: route, end: true }, location.pathname))
+  );
 
   const hasLocalFooter = routesWithLocalFooter.some((route) =>
     Boolean(matchPath({ path: route, end: true }, location.pathname))
@@ -174,7 +177,8 @@ const AppContent = () => {
       <GlobalHeader />
       <Routes>
         <Route path="/" element={<Index />} />
-        <Route path="/profile/:id" element={<Profile />} />
+        <Route path="/profile" element={<Navigate to="/catalog" replace />} />
+        <Route path="/profile/:id" element={<ProfilePreviewRoute />} />
         <Route path="/editar-perfil/:id" element={<EditarPerfil />} />
         <Route path="/catalog" element={<Catalog />} />
         <Route path="/photo-upload" element={<PhotoUpload />} />
@@ -189,7 +193,7 @@ const AppContent = () => {
         <Route path="/ganhar-pinkpoints" element={<GanharPinkPoints />} />
         <Route path="/converter-pinkpoints" element={<ConverterPinkPoints />} />
         <Route path="/minhas-rositas" element={<MinhasRositas />} />
-        <Route path="/perfil/:id" element={<PerfilTest />} />
+        <Route path="/perfil/:id" element={<ProfilePreviewRoute />} />
 
         {/* Rotas Administrativas */}
         <Route path="/admin-login" element={<AdminLogin />} />

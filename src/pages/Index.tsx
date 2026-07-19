@@ -233,8 +233,19 @@ const ContactPopup: React.FC<{ name: string; phone?: string; id: string; onClose
     document.body
   );
 };
+
+const buildAdPreviewProfile = (profile: Acompanhante, reliabilityScore: number, rank?: number) => ({
+  ...profile,
+  audioUrl: profile.audioUrl || profile.audio_url,
+  adVideo: profile.adVideo || profile.video_url,
+  videoThumbnails: profile.videoThumbnails || profile.video_thumbnails,
+  isAvailable: profile.is_available,
+  isVerified: profile.is_verified,
+  reliabilityScore,
+  rank,
+});
+
 const ProfileCard: React.FC<ProfileCardProps> = ({ profile, rank }) => {
-  const navigate = useNavigate();
   const isFeatured = profile.is_featured;
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
   const [showContactPopup, setShowContactPopup] = useState(false);
@@ -243,9 +254,10 @@ const ProfileCard: React.FC<ProfileCardProps> = ({ profile, rank }) => {
   const cardVideoRef = useRef<HTMLVideoElement>(null);
   const reliabilityScore = Math.max(0, Math.min(100, Number(profile.reliability_score) || 0));
   const reliabilityFillClass =
-    reliabilityScore >= 80 ? 'bg-emerald-400' :
-    reliabilityScore >= 50 ? 'bg-amber-400' :
-    'bg-rose-400';
+    reliabilityScore >= 80 ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' :
+    reliabilityScore >= 50 ? 'bg-yellow-400 shadow-[0_0_8px_rgba(250,204,21,0.6)]' :
+    'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]';
+  const isTopThreeCard = Boolean(rank && rank <= 3);
 
   const toggleFeaturedVideo = (event?: React.SyntheticEvent) => {
     event?.preventDefault();
@@ -291,7 +303,7 @@ const ProfileCard: React.FC<ProfileCardProps> = ({ profile, rank }) => {
       return;
     }
 
-    navigate(`/profile/${profile.id}`);
+    setShowAdPreview(true);
   };
 
   // Card de destaque - design premium
@@ -299,7 +311,7 @@ const ProfileCard: React.FC<ProfileCardProps> = ({ profile, rank }) => {
     return (
       <>
         <div
-          className="group relative aspect-[3/4] w-full cursor-pointer overflow-hidden rounded-2xl border border-gray-200 bg-gray-100 shadow-[0_10px_30px_-12px_rgba(0,0,0,0.35)] transition-all duration-300 hover:scale-[1.01] hover:shadow-2xl"
+          className="group relative aspect-[3/4] w-full cursor-pointer overflow-hidden rounded-2xl bg-gray-100 shadow-soft transition-all duration-300 hover:shadow-xl"
           onClick={handleCardNavigation}
         >
           {/* Image or inline video */}
@@ -321,31 +333,9 @@ const ProfileCard: React.FC<ProfileCardProps> = ({ profile, rank }) => {
               className="absolute inset-0 w-full h-full object-cover"
             />
           )}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent pointer-events-none" />
-
-          {/* Badge Destaque / Boost */}
-          <div className="absolute top-4 left-4">
-            <div className="bg-green-500/90 backdrop-blur-md px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-md">
-              <span className="w-2 h-2 bg-white rounded-full animate-pulse" />
-              <span className="text-xs font-bold text-white uppercase tracking-wider">Disponível Agora</span>
-            </div>
-          </div>
-
-          {/* Rank Badge */}
-          {rank && rank <= 3 && (
-            <div className="absolute top-2 right-2 md:top-4 md:right-4 z-30">
-              <div className={`premium-rank-badge rank-${rank}-new`}>
-                <div className="rank-glow-effect"></div>
-                <span className="rank-num">{rank}º</span>
-                <span className="rank-top-text uppercase">TOP {rank}</span>
-                <span className="rank-city-tag uppercase truncate">DA CIDADE</span>
-              </div>
-            </div>
-          )}
-
-          {/* Play/Pause Button — positioned in upper-center, away from text */}
-          {featuredVideoUrl && (
-            <div className="absolute left-0 right-0 z-20 flex justify-center pointer-events-none" style={{ top: '28%' }}>
+          <div className="pointer-events-none absolute inset-0 bg-black/10 transition-colors group-hover:bg-black/5" />
+          <div className="pointer-events-none absolute left-1/2 top-[42%] -translate-x-1/2 -translate-y-1/2 sm:top-[40%]">
+            {featuredVideoUrl ? (
               <button
                 type="button"
                 onPointerDown={(e) => {
@@ -356,90 +346,108 @@ const ProfileCard: React.FC<ProfileCardProps> = ({ profile, rank }) => {
                   e.preventDefault();
                   e.stopPropagation();
                 }}
-                onClick={(e) => {
-                  toggleFeaturedVideo(e);
-                }}
+                onClick={toggleFeaturedVideo}
                 onTouchStart={(e) => {
                   e.stopPropagation();
                 }}
                 data-card-interactive="true"
-                className="pointer-events-auto relative z-30 flex h-14 w-14 items-center justify-center rounded-full border border-white/40 bg-white/20 shadow-lg backdrop-blur-md transition-all hover:scale-110 hover:bg-white/35 md:h-16 md:w-16"
+                className="pointer-events-auto relative z-30 flex h-14 w-14 items-center justify-center rounded-full border border-white/50 bg-white/20 shadow-lg backdrop-blur-md transition-transform group-hover:scale-110 sm:h-16 sm:w-16"
                 aria-label={`Reproduzir/Pausar video de ${profile.name}`}
               >
                 {isVideoPlaying ? (
-                  <Pause className="h-6 w-6 fill-white text-white md:h-7 md:w-7" />
+                  <Pause className="h-7 w-7 fill-white text-white sm:h-8 sm:w-8" />
                 ) : (
-                  <Play className="ml-0.5 h-6 w-6 fill-white text-white md:h-7 md:w-7" />
+                  <Play className="ml-1 h-8 w-8 fill-white text-white sm:h-9 sm:w-9" />
                 )}
               </button>
+            ) : (
+              <div className="relative z-30 flex h-14 w-14 items-center justify-center rounded-full border border-white/50 bg-white/20 shadow-lg backdrop-blur-md transition-transform group-hover:scale-110 sm:h-16 sm:w-16">
+                <Play className="ml-1 h-8 w-8 fill-white text-white sm:h-9 sm:w-9" />
+              </div>
+            )}
+          </div>
+
+          {/* Badge Destaque / Boost */}
+          <div className="absolute top-4 left-4">
+            <div className="flex items-center gap-1.5 rounded-full bg-green-500/90 px-3 py-1 shadow-md backdrop-blur-md">
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-white" />
+              <span className="text-[10px] font-bold uppercase tracking-wider text-white">Disponível Agora</span>
+            </div>
+          </div>
+
+          {/* Rank Badge */}
+          {rank && rank <= 3 && (
+            <div className="absolute right-4 top-4 z-30">
+              <div className={`premium-rank-badge rank-${rank}-new`}>
+                <div className="rank-glow-effect"></div>
+                <span className="rank-num">{rank}º</span>
+                <span className="rank-top-text uppercase">TOP {rank}</span>
+                <span className="rank-city-tag uppercase truncate">DA CIDADE</span>
+              </div>
             </div>
           )}
 
           {/* Content — distributed vertically */}
-          <div className="absolute bottom-0 left-0 right-0 p-5 flex flex-col" style={{background: 'linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.7) 50%, transparent 100%)', paddingTop: '6rem'}}>
+          <div className="absolute bottom-0 left-0 right-0 flex flex-col bg-gradient-to-t from-black/90 via-black/60 to-transparent p-4 pt-24 sm:p-5 sm:pt-32">
 
             {/* Description */}
-            {profile.description && (
-              <p className="text-white/85 text-sm italic font-medium drop-shadow-md leading-snug line-clamp-2 mb-4">
+            {isTopThreeCard && profile.description && (
+              <p className="mb-2 line-clamp-1 text-xs font-medium italic leading-tight text-white/90 drop-shadow-md sm:mb-3 sm:line-clamp-2 sm:text-sm">
                 &ldquo;{profile.description}&rdquo;
               </p>
             )}
 
             {/* Name + online dot */}
-            <div className="flex items-center gap-2 mb-3">
-              <h2 className="text-2xl font-bold text-white drop-shadow-sm leading-tight">
+            <div className="mb-1 flex items-center gap-2">
+              <h2 className="min-w-0 truncate text-xl font-bold leading-tight text-white drop-shadow-sm sm:text-2xl">
                 {profile.name}, {profile.age}
               </h2>
               {profile.is_available && (
-                <div className="w-3 h-3 rounded-full bg-green-500 border border-white/20 shadow-[0_0_8px_rgba(34,197,94,0.6)] flex-shrink-0" />
+                <div className="h-2.5 w-2.5 flex-shrink-0 rounded-full border border-white/20 bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)] sm:h-3 sm:w-3" />
               )}
             </div>
 
-            {/* Location */}
-            <p className="text-gray-300 text-sm flex items-center gap-1.5 font-medium mb-4">
-              <MapPin className="w-4 h-4 text-pink-300 flex-shrink-0" />
-              <span className="truncate">{profile.location}</span>
-            </p>
-
             {/* Reliability */}
-            <div className="mb-5">
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-white/80 text-xs font-bold uppercase tracking-wider">
+            <div className="mb-2.5 sm:mb-3">
+              <div className="mb-1 flex items-center justify-between">
+                <span className="text-[9px] font-bold uppercase tracking-wider text-white/80 sm:text-[10px]">
                   Confiabilidade: {reliabilityScore}%
                 </span>
                 {reliabilityScore === 100 && (
-                  <div className="flex items-center gap-0.5 bg-green-500 px-2 py-0.5 rounded-full">
-                    <span className="text-[9px] font-black text-white uppercase">✓ Verificada</span>
+                  <div className="flex items-center gap-0.5 rounded-full border border-white/20 bg-green-500 px-1.5 py-0.5">
+                    <span className="text-[7px] font-black uppercase text-white">100% verificada</span>
                   </div>
                 )}
               </div>
-              <div className="w-full bg-white/20 h-2 rounded-full overflow-hidden">
+              <div className="h-1 w-full overflow-hidden rounded-full bg-white/20 backdrop-blur-sm">
                 <div
-                  className={`h-full rounded-full transition-all duration-500 ${
-                    reliabilityScore >= 80 ? 'bg-green-400 shadow-[0_0_8px_rgba(34,197,94,0.6)]' :
-                    reliabilityScore >= 50 ? 'bg-yellow-400 shadow-[0_0_8px_rgba(250,204,21,0.6)]' :
-                    'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]'
-                  }`}
+                  className={`h-full rounded-full transition-all duration-500 ${reliabilityFillClass}`}
                   style={{ width: `${reliabilityScore}%` }}
                 />
               </div>
             </div>
+
+            {/* Location */}
+            <p className="mb-3 flex items-center gap-1 text-xs font-medium text-gray-200 sm:mb-4 sm:text-sm">
+              <MapPin className="h-3.5 w-3.5 flex-shrink-0 text-gray-200 sm:h-4 sm:w-4" />
+              <span className="truncate">{profile.location}</span>
+            </p>
 
             {/* Action Buttons */}
             <div className="grid grid-cols-2 gap-3">
               <button
                 data-card-interactive="true"
                 onClick={(e) => { e.stopPropagation(); setShowAdPreview(true); }}
-                className="flex items-center justify-center h-12 rounded-xl border border-white/40 hover:bg-white/15 transition-colors text-sm font-bold text-white backdrop-blur-sm"
+                className="flex h-10 items-center justify-center rounded-xl border border-white/40 text-xs font-bold text-white backdrop-blur-sm transition-colors hover:bg-white/10 sm:h-11 sm:text-sm"
               >
-                Ver Anúncio
+                Ver Perfil
               </button>
               <button
                 data-card-interactive="true"
                 onClick={(e) => { e.stopPropagation(); setShowContactPopup(true); }}
-                className="flex items-center justify-center h-12 rounded-xl bg-[#da0b7d] hover:bg-[#b00965] transition-colors text-sm font-bold text-white shadow-lg gap-2"
+                className="flex h-10 items-center justify-center gap-2 rounded-xl bg-[#da0b7d] text-xs font-bold text-white shadow-lg shadow-[#da0b7d]/30 transition-colors hover:bg-[#b00965] sm:h-11 sm:text-sm"
               >
-                <MessageSquare className="w-4 h-4 fill-current" />
+                <MessageSquare className="h-3.5 w-3.5 fill-current sm:h-4 sm:w-4" />
                 <span>CONTATO</span>
               </button>
             </div>
@@ -451,11 +459,7 @@ const ProfileCard: React.FC<ProfileCardProps> = ({ profile, rank }) => {
 
           {showAdPreview && (
             <AdPreviewModal
-              profile={{
-                ...profile,
-                reliabilityScore,
-                rank,
-              }}
+              profile={buildAdPreviewProfile(profile, reliabilityScore, rank)}
               onClose={() => setShowAdPreview(false)}
               onContact={() => {
                 setShowAdPreview(false);
@@ -473,8 +477,8 @@ const ProfileCard: React.FC<ProfileCardProps> = ({ profile, rank }) => {
   return (
     <>
       <div
-        className="group relative aspect-[3/4] cursor-pointer overflow-hidden rounded-2xl border border-gray-200 bg-gray-100 shadow-[0_10px_30px_-12px_rgba(0,0,0,0.25)] transition-all duration-300 hover:scale-[1.01] hover:shadow-xl"
-        onClick={() => navigate(`/profile/${profile.id}`)}
+        className="group relative aspect-[3/4] cursor-pointer overflow-hidden rounded-2xl bg-gray-100 shadow-soft transition-all duration-300 hover:shadow-lg"
+        onClick={handleCardNavigation}
       >
       <img
         src={profile.image || '/default-profile.png'}
@@ -482,69 +486,65 @@ const ProfileCard: React.FC<ProfileCardProps> = ({ profile, rank }) => {
         className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
       />
       <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent" />
+      <div className="pointer-events-none absolute inset-0 bg-black/10 transition-colors group-hover:bg-black/5" />
+      <div className="pointer-events-none absolute left-1/2 top-[42%] -translate-x-1/2 -translate-y-1/2 sm:top-[40%]">
+        <div className="flex h-14 w-14 items-center justify-center rounded-full border border-white/50 bg-white/20 shadow-lg backdrop-blur-md transition-transform group-hover:scale-110 sm:h-16 sm:w-16">
+          <Play className="ml-1 h-8 w-8 fill-white text-white sm:h-9 sm:w-9" />
+        </div>
+      </div>
 
       {/* Badge Disponível Agora */}
       {profile.is_available && (
-        <div className="absolute top-3 left-3">
-          <div className="bg-green-500/90 backdrop-blur-md px-2.5 py-1 rounded-full flex items-center gap-1 shadow-md">
+        <div className="absolute left-4 top-4">
+          <div className="flex items-center gap-1 rounded-full bg-green-500/90 px-3 py-1 shadow-md backdrop-blur-md">
             <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
-            <span className="text-[10px] font-bold text-white uppercase tracking-wider">Disponível</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-white">Disponível Agora</span>
           </div>
         </div>
       )}
 
-      <div className="absolute bottom-0 left-0 right-0 px-4 pb-4 pt-28" style={{background: 'linear-gradient(to top, rgba(0,0,0,0.94) 0%, rgba(0,0,0,0.68) 56%, transparent 100%)'}}>
-        {profile.description && (
-          <p className="mb-3 line-clamp-2 text-sm italic font-medium leading-snug text-white/80">
-            &ldquo;{profile.description}&rdquo;
-          </p>
-        )}
-
+      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent p-4 pt-20 sm:p-5 sm:pt-24">
         {/* Name + status */}
-        <div className="flex items-center gap-2 mb-2">
-          <h3 className="text-xl font-bold text-white leading-tight">{profile.name}, {profile.age}</h3>
+        <div className="mb-1.5 flex items-center gap-2 sm:mb-2">
+          <h3 className="min-w-0 truncate text-lg font-bold leading-tight text-white sm:text-xl">{profile.name}, {profile.age}</h3>
           {profile.is_available && (
             <div className="w-2.5 h-2.5 bg-green-500 rounded-full flex-shrink-0 shadow-[0_0_6px_rgba(34,197,94,0.7)]" />
           )}
         </div>
 
         {/* Location */}
-        <p className="mb-4 flex items-center gap-1 text-sm font-medium text-gray-300">
-          <MapPin className="w-3.5 h-3.5 text-pink-300 flex-shrink-0" />
-          <span className="truncate">{profile.location}</span>
-        </p>
-
-        <div className="mb-4">
+        <div className="mb-2.5 sm:mb-3">
           <div className="mb-1 flex items-center justify-between">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-white/75">
+            <span className="text-[9px] font-bold uppercase tracking-wider text-white/75 sm:text-[10px]">
               Confiabilidade: {reliabilityScore}%
             </span>
           </div>
-          <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/20">
+          <div className="h-1 w-full overflow-hidden rounded-full bg-white/20 backdrop-blur-sm">
             <div
-              className={`h-full rounded-full ${
-                reliabilityScore >= 80 ? 'bg-green-400' :
-                reliabilityScore >= 50 ? 'bg-yellow-400' :
-                'bg-red-500'
-              }`}
+              className={`h-full rounded-full ${reliabilityFillClass}`}
               style={{ width: `${reliabilityScore}%` }}
             />
           </div>
         </div>
 
+        <p className="mb-3 flex items-center gap-1 text-xs font-medium text-gray-200 sm:mb-4 sm:text-sm">
+          <MapPin className="h-3.5 w-3.5 flex-shrink-0 text-gray-200 sm:h-4 sm:w-4" />
+          <span className="truncate">{profile.location}</span>
+        </p>
+
         {/* Buttons */}
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 gap-3">
           <button
             onClick={(e) => { e.stopPropagation(); setShowAdPreview(true); }}
-            className="flex items-center justify-center h-11 rounded-xl border border-white/30 hover:bg-white/15 transition-colors text-sm font-bold text-white"
+            className="flex h-10 items-center justify-center rounded-xl border border-white/40 text-xs font-bold text-white backdrop-blur-sm transition-colors hover:bg-white/10 sm:h-11 sm:text-sm"
           >
-            Ver Anúncio
+            Ver Perfil
           </button>
           <button
             onClick={(e) => { e.stopPropagation(); setShowContactPopup(true); }}
-            className="flex items-center justify-center h-11 rounded-xl bg-[#da0b7d] hover:bg-[#b00965] transition-colors text-sm font-bold text-white gap-1.5 shadow-md"
+            className="flex h-10 items-center justify-center gap-2 rounded-xl bg-[#da0b7d] text-xs font-bold text-white shadow-lg shadow-[#da0b7d]/30 transition-colors hover:bg-[#b00965] sm:h-11 sm:text-sm"
           >
-            <MessageSquare className="w-4 h-4 fill-current" />
+            <MessageSquare className="h-3.5 w-3.5 fill-current sm:h-4 sm:w-4" />
             <span>CONTATO</span>
           </button>
         </div>
@@ -557,10 +557,7 @@ const ProfileCard: React.FC<ProfileCardProps> = ({ profile, rank }) => {
 
       {showAdPreview && (
         <AdPreviewModal
-          profile={{
-            ...profile,
-            reliabilityScore,
-          }}
+          profile={buildAdPreviewProfile(profile, reliabilityScore)}
           onClose={() => setShowAdPreview(false)}
           onContact={() => {
             setShowAdPreview(false);
@@ -586,6 +583,8 @@ const Index: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showCityDropdown, setShowCityDropdown] = useState(false);
   const [selectedNeighborhood, setSelectedNeighborhood] = useState<string | null>(null);
+  const [previewProfile, setPreviewProfile] = useState<Acompanhante | null>(null);
+  const [contactProfile, setContactProfile] = useState<Acompanhante | null>(null);
   const flashScrollRef = useRef<HTMLDivElement>(null);
 
   // Stories do banco de dados
@@ -783,6 +782,9 @@ const Index: React.FC = () => {
     image: companion.image || '/default-profile.png'
   }));
 
+  const getProfileReliabilityScore = (profile: Acompanhante) =>
+    Math.max(0, Math.min(100, Number(profile.reliability_score) || 0));
+
   // Ranking: boost ativo primeiro → mais recente primeiro → mais caro como desempate → disponível → destaque → rating
   const boostSort = (a: any, b: any) => {
     // 1. Boost ativo tem prioridade máxima
@@ -812,6 +814,7 @@ const Index: React.FC = () => {
     .sort((a, b) => new Date(b.boostStartedAt || 0).getTime() - new Date(a.boostStartedAt || 0).getTime());
 
   const boostedIds = new Set(boostedProfiles.map(p => p.id));
+  const displayLocationLabel = selectedNeighborhood || 'Recife';
 
   const onlineProfiles = [...displayCompanions]
     .filter(c => !boostedIds.has(c.id) && c.is_available)
@@ -822,8 +825,8 @@ const Index: React.FC = () => {
     .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
 
   // Para compatibilidade com código existente
-  const featuredProfiles = boostedProfiles;
-  const regularProfiles = onlineProfiles;
+  const featuredProfiles = boostedProfiles.slice(0, 3);
+  const regularProfiles = [...boostedProfiles.slice(3), ...onlineProfiles];
 
   // Handle story click
   const handleStoryClick = (story: StoryFromDB) => {
@@ -873,11 +876,11 @@ const Index: React.FC = () => {
             <div className="relative flex shrink-0 justify-center">
               <button
                 onClick={() => setShowCityDropdown(!showCityDropdown)}
-                className="flex items-center gap-2 rounded-xl bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200 hover:text-[#d91d83]"
+                className="group flex items-center gap-2 rounded-xl px-3 py-1.5 text-sm font-bold text-gray-800 transition-colors hover:bg-gray-100 hover:text-[#da0b7d]"
               >
-                <MapPin className="h-4 w-4 text-[#d91d83]" />
-                <span className="max-w-[180px] truncate sm:max-w-none">{selectedNeighborhood || 'Recife RMR'}</span>
-                <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${showCityDropdown ? 'rotate-180' : ''}`} />
+                <MapPin className="h-5 w-5 text-[#da0b7d] transition-transform group-hover:scale-110" />
+                <span className="max-w-[180px] truncate sm:max-w-none">{displayLocationLabel}</span>
+                <ChevronDown className={`h-4 w-4 text-gray-400 transition-transform duration-200 ${showCityDropdown ? 'rotate-180' : ''}`} />
               </button>
 
               {showCityDropdown && (
@@ -893,7 +896,7 @@ const Index: React.FC = () => {
                           setShowCityDropdown(false);
                         }}
                         className={`w-full text-left px-4 py-3 text-xs md:text-sm font-semibold hover:bg-pink-50 transition-colors border-b border-gray-100 ${
-                          !selectedNeighborhood ? 'text-[#d91d83] bg-pink-50' : 'text-gray-800'
+                          !selectedNeighborhood ? 'text-[#da0b7d] bg-pink-50' : 'text-gray-800'
                         }`}
                       >
                         Recife RMR - Todas
@@ -914,7 +917,7 @@ const Index: React.FC = () => {
                                   setShowCityDropdown(false);
                                 }}
                                 className={`w-full text-left px-6 py-2.5 text-xs md:text-sm hover:bg-pink-50 transition-colors ${
-                                  selectedNeighborhood === nb ? 'text-[#d91d83] font-semibold bg-pink-50' : 'text-gray-700'
+                                  selectedNeighborhood === nb ? 'text-[#da0b7d] font-semibold bg-pink-50' : 'text-gray-700'
                                 }`}
                               >
                                 {label}
@@ -930,14 +933,14 @@ const Index: React.FC = () => {
             </div>
 
             {/* Gênero */}
-            <div className="flex w-full min-w-0 flex-1 rounded-xl bg-gray-100 p-1 sm:w-auto sm:flex-none sm:shrink-0">
+            <div className="flex w-[264px] max-w-full min-w-0 rounded-xl bg-gray-100 p-1 sm:w-auto sm:flex-none sm:shrink-0">
               {(['Mulheres', 'Homens', 'Trans'] as const).map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
                   className={`min-w-0 flex-1 rounded-lg px-4 py-1.5 text-sm font-bold transition-all sm:flex-none sm:px-6 ${
                     activeTab === tab
-                      ? 'bg-[#d91d83] text-white shadow-md'
+                      ? 'bg-[#da0b7d] text-white shadow-md'
                       : 'text-gray-500 hover:text-gray-700'
                   }`}
                 >
@@ -949,16 +952,16 @@ const Index: React.FC = () => {
           </div>
         </div>
 
-        <main className="max-w-6xl mx-auto w-full px-4 sm:px-6 lg:px-8 pt-8 pb-24">
-          <div className="mb-8 text-center sm:text-left">
-            <h2 className="text-xl sm:text-2xl md:text-[28px] font-bold leading-tight text-gray-900">
-              Descubra as acompanhantes que estão bombando agora em <span className="text-[#da0b7d]">{selectedNeighborhood || 'Recife RMR'}</span> 🔥
+        <main className="max-w-6xl mx-auto w-full px-4 sm:px-6 lg:px-8 pt-8 pb-32">
+          <div className="mb-8 text-left">
+            <h2 className="text-lg font-bold leading-snug text-gray-900 sm:text-xl md:text-2xl lg:whitespace-nowrap lg:text-[28px]">
+              Descubra as acompanhantes que estão bombando agora em <span className="text-[#da0b7d]">{displayLocationLabel}</span> 🔥
             </h2>
           </div>
 
           {/* Stories — só exibe se houver algum */}
           {(loggedCompanion || storiesFromDB.length > 0) && (
-            <div className="flex gap-3 md:gap-5 overflow-x-auto pb-4 custom-scrollbar mb-4 no-scrollbar">
+            <div className="mb-4 flex gap-6 overflow-x-auto pb-8 pt-2 custom-scrollbar no-scrollbar">
               {loggedCompanion && (
                 <button
                   type="button"
@@ -999,35 +1002,35 @@ const Index: React.FC = () => {
           {/* Loading */}
           {loading && (
             <div className="text-center py-12">
-              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#d91d83]"></div>
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#da0b7d]"></div>
               <p className="text-gray-600 mt-2">Carregando...</p>
             </div>
           )}
 
-          <p className="text-gray-900 font-bold mb-6 px-1 text-center sm:text-left italic text-base">
-            Escolha uma acompanhante e entre em contato
+          <p className="mb-4 px-1 text-center text-base font-bold italic text-gray-900 sm:text-left">
+            Escolha uma acompanhante entre em contato
           </p>
 
           {/* === 1. SUBIDAS (boosted profiles) === */}
-          {!loading && boostedProfiles.length > 0 && (
+          {!loading && featuredProfiles.length > 0 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mb-12">
-              {boostedProfiles.map((profile, index) => (
+              {featuredProfiles.map((profile, index) => (
                 <ProfileCard key={profile.id} profile={{...profile, is_featured: true}} rank={index + 1} />
               ))}
             </div>
           )}
 
-          {/* === 2. ONLINE profiles (sem boost) === */}
-          {!loading && onlineProfiles.length > 0 && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-5 mb-8">
-              {onlineProfiles.map((profile) => (
+          {/* === 2. ONLINE profiles e subidas compactas === */}
+          {!loading && regularProfiles.length > 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 mb-8">
+              {regularProfiles.map((profile) => (
                 <ProfileCard key={profile.id} profile={{...profile, is_featured: false}} />
               ))}
             </div>
           )}
 
           {/* === 2b. Ver catálogo completo === */}
-          {!loading && onlineProfiles.length > 0 && (
+          {!loading && regularProfiles.length > 0 && (
             <div className="flex justify-center mt-10 mb-10">
               <button
                 onClick={() => navigate('/catalog')}
@@ -1070,7 +1073,10 @@ const Index: React.FC = () => {
                 {flashVideos.map((video) => (
                   <div
                     key={video.id}
-                    onClick={() => navigate(`/profile/${video.id}`)}
+                    onClick={() => {
+                      const profile = displayCompanions.find((companion) => companion.id === video.id);
+                      if (profile) setPreviewProfile(profile);
+                    }}
                     className="pinkflash-item flex-shrink-0 w-[160px] sm:w-[180px] h-[280px] sm:h-[320px] rounded-xl overflow-hidden relative cursor-pointer group border border-pink-500/20 hover:border-pink-500/50 transition-all hover:shadow-pink-glow"
                   >
                     <img src={video.image} alt={video.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
@@ -1090,7 +1096,7 @@ const Index: React.FC = () => {
 
           {/* === 4. OFFLINE profiles === */}
           {!loading && offlineProfiles.length > 0 && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-5 mb-10">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 mb-10">
               {offlineProfiles.map((profile) => (
                 <ProfileCard key={profile.id} profile={{...profile, is_featured: false}} />
               ))}
@@ -1102,13 +1108,13 @@ const Index: React.FC = () => {
             <div className="text-center py-12">
               <p className="text-gray-600 mb-2">
                 {activeTab !== 'Mulheres'
-                  ? `Nenhum(a) acompanhante de "${activeTab}" encontrado(a) em ${selectedNeighborhood || 'Recife RMR'}.`
-                  : `Nenhuma acompanhante encontrada em ${selectedNeighborhood || 'Recife RMR'}.`}
+                  ? `Nenhum(a) acompanhante de "${activeTab}" encontrado(a) em ${displayLocationLabel}.`
+                  : `Nenhuma acompanhante encontrada em ${displayLocationLabel}.`}
               </p>
               {activeTab !== 'Mulheres' && (
                 <button
                   onClick={() => setActiveTab('Mulheres')}
-                  className="text-[#d91d83] text-sm font-medium underline underline-offset-2"
+                  className="text-[#da0b7d] text-sm font-medium underline underline-offset-2"
                 >
                   Ver acompanhantes disponíveis
                 </button>
@@ -1147,6 +1153,26 @@ const Index: React.FC = () => {
           />
         )}
 
+        {previewProfile && (
+          <AdPreviewModal
+            profile={buildAdPreviewProfile(previewProfile, getProfileReliabilityScore(previewProfile))}
+            onClose={() => setPreviewProfile(null)}
+            onContact={() => {
+              setContactProfile(previewProfile);
+              setPreviewProfile(null);
+            }}
+          />
+        )}
+
+        {contactProfile && (
+          <ContactPopup
+            name={contactProfile.name}
+            phone={contactProfile.phone}
+            id={contactProfile.id}
+            onClose={() => setContactProfile(null)}
+          />
+        )}
+
         {/* Styles */}
         <style>{`
           * {
@@ -1162,12 +1188,12 @@ const Index: React.FC = () => {
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 8px 4px;
-            min-width: 52px;
-            border-radius: 12px;
-            backdrop-filter: blur(8px);
-            border: 1.5px solid rgba(255,255,255,0.3);
-            box-shadow: 0 10px 20px -5px rgba(0,0,0,0.5);
+            padding: 6px 2px;
+            min-width: 44px;
+            border-radius: 10px;
+            backdrop-filter: blur(6px);
+            border: 1px solid rgba(255,255,255,0.3);
+            box-shadow: 0 8px 16px -4px rgba(0,0,0,0.4);
             overflow: hidden;
             z-index: 30;
           }
@@ -1175,39 +1201,39 @@ const Index: React.FC = () => {
             position: absolute;
             inset: -50%;
             background: radial-gradient(circle, var(--rank-color-light) 0%, transparent 70%);
-            opacity: 0.25;
+            opacity: 0.2;
             animation: pulse-glow 3s infinite;
           }
           @keyframes pulse-glow {
-            0%, 100% { opacity: 0.15; transform: scale(1); }
-            50% { opacity: 0.35; transform: scale(1.2); }
+            0%, 100% { opacity: 0.1; transform: scale(1); }
+            50% { opacity: 0.25; transform: scale(1.1); }
           }
           .rank-num {
-            font-size: 26px;
+            font-size: 20px;
             font-weight: 900;
             line-height: 1;
             background: linear-gradient(to bottom, #fff 30%, var(--rank-color-main) 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+            filter: drop-shadow(0 1.5px 3px rgba(0,0,0,0.3));
           }
           .rank-top-text {
-            font-size: 8px;
+            font-size: 7px;
             font-weight: 800;
-            letter-spacing: 0.1em;
+            letter-spacing: 0.08em;
             color: #fff;
             opacity: 0.9;
-            margin-top: -2px;
+            margin-top: -1px;
           }
           .rank-city-tag {
-            font-size: 7px;
+            font-size: 6px;
             font-weight: 900;
             color: var(--rank-color-main);
             background: rgba(0,0,0,0.7);
-            padding: 2px 6px;
-            border-radius: 4px;
-            margin-top: 4px;
-            letter-spacing: 0.05em;
+            padding: 1.5px 4px;
+            border-radius: 3px;
+            margin-top: 3px;
+            letter-spacing: 0.04em;
           }
           .rank-1-new { 
             --rank-color-main: #FFD700; 
@@ -1234,7 +1260,7 @@ const Index: React.FC = () => {
             background: #f1f1f1;
           }
           .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #d91d83;
+            background: #da0b7d;
             border-radius: 10px;
           }
           .no-scrollbar::-webkit-scrollbar {

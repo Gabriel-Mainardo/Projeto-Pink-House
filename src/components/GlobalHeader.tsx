@@ -160,7 +160,7 @@ const GlobalHeader = () => {
   return (
     <>
       <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-200/80 shadow-sm">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-6xl px-3 min-[420px]:px-4 sm:px-6 lg:px-8">
           <div className="relative flex h-16 items-center justify-between">
             <div className="flex items-center">
               <button
@@ -181,10 +181,10 @@ const GlobalHeader = () => {
             </div>
 
             <div
-              className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 flex cursor-pointer items-center"
+              className="absolute left-1/2 top-1/2 flex max-w-[112px] -translate-x-1/2 -translate-y-1/2 cursor-pointer items-center justify-center min-[380px]:max-w-none"
               onClick={() => navigate('/')}
             >
-              <h1 className="text-lg font-extrabold tracking-tight sm:text-xl md:text-2xl">
+              <h1 className="text-[15px] font-extrabold tracking-normal min-[380px]:text-lg sm:text-xl md:text-2xl">
                 <span className="text-gray-900">Pink</span>
                 <span className="text-[#da0b7d]">House</span>
               </h1>
@@ -194,16 +194,15 @@ const GlobalHeader = () => {
               {/* PinkCoins Badge - code.html style */}
               <div 
                 onClick={() => navigate('/pinkpoints')}
-                className="group flex h-10 w-10 cursor-pointer items-center justify-center gap-2 rounded-xl bg-gray-100 px-0 transition-colors hover:bg-gray-200 min-[440px]:w-auto min-[440px]:justify-start min-[440px]:px-3"
+                className="group flex h-8 w-8 cursor-pointer items-center justify-center gap-2 rounded-xl bg-gray-100 px-0 transition-colors hover:bg-gray-200 min-[380px]:h-9 min-[380px]:w-9 sm:h-10 sm:w-auto sm:justify-start sm:px-3"
               >
                 <CircleDollarSign className="h-5 w-5 text-[#da0b7d] group-hover:scale-110 transition-transform flex-shrink-0" />
                 <span className="hidden text-sm font-bold text-gray-900 sm:inline">PinkCoins : 3.000</span>
-                <span className="hidden text-sm font-bold text-gray-900 min-[440px]:inline sm:hidden">3.000</span>
               </div>
 
               <button
                 onClick={() => setShowSearchModal(true)}
-                className="flex items-center justify-center w-10 h-10 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-900 transition-colors"
+                className="flex h-8 w-8 items-center justify-center rounded-xl bg-gray-100 text-gray-900 transition-colors hover:bg-gray-200 min-[380px]:h-9 min-[380px]:w-9 sm:h-10 sm:w-10"
                 aria-label="Buscar"
               >
                 <Search className="h-5 w-5" />
@@ -224,7 +223,7 @@ const GlobalHeader = () => {
                   }
                   navigate(getAccountPath());
                 }}
-                className="flex items-center justify-center w-10 h-10 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-900 transition-colors"
+                className="flex h-8 w-8 items-center justify-center rounded-xl bg-gray-100 text-gray-900 transition-colors hover:bg-gray-200 min-[380px]:h-9 min-[380px]:w-9 sm:h-10 sm:w-10"
                 aria-label="Minha Conta"
               >
                 <UserCircle className="h-5 w-5" />

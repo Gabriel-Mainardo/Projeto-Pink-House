@@ -29,6 +29,7 @@ export interface AdPreviewProfile {
   adVideo?: string | null;
   video_url?: string;
   description?: string;
+  tags?: string[];
   rating?: number;
   phone?: string;
   pricePerHour?: string;
@@ -81,6 +82,9 @@ const AdPreviewModal = ({ profile, onClose, onContact }: AdPreviewModalProps) =>
     const items = [heroVideo, ...(profile.videos || [])].filter(Boolean) as string[];
     return Array.from(new Set(items)).slice(0, 6);
   }, [heroVideo, profile.videos]);
+  const services = useMemo(() => {
+    return (profile.tags || []).map((tag) => tag.trim()).filter(Boolean);
+  }, [profile.tags]);
   const descriptionParts = splitDescription(profile.description);
 
   useEffect(() => {
@@ -290,6 +294,22 @@ const AdPreviewModal = ({ profile, onClose, onContact }: AdPreviewModalProps) =>
                 <p key={part}>{part}</p>
               ))}
             </div>
+
+            {services.length > 0 && (
+              <div className="rounded-[2rem] border border-white/10 bg-white/10 p-5 backdrop-blur-xl">
+                <h3 className="mb-4 text-xs font-bold uppercase tracking-widest text-[#e2bdc6]">Serviços</h3>
+                <div className="flex flex-wrap gap-2">
+                  {services.map((service) => (
+                    <span
+                      key={service}
+                      className="rounded-full border border-[#ff4994]/30 bg-[#ff4994]/15 px-3 py-1.5 text-xs font-black uppercase tracking-wide text-[#ffb1c7]"
+                    >
+                      {service}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:flex-wrap">
               <button

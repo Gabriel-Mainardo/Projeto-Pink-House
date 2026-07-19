@@ -1,4 +1,4 @@
-import { Heart, CheckCircle, Crown, Eye, Volume2, Play, Pause, Phone, Globe, MessageSquare, X, Gift } from 'lucide-react';
+import { Heart, CheckCircle, Crown, Volume2, Play, Pause, Phone, Globe, MessageSquare, X, Gift } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
@@ -12,6 +12,8 @@ interface CompanionCardProps {
   location: string;
   image: string;
   gallery?: string[];
+  videos?: string[];
+  videoThumbnails?: string[];
   adVideo?: string;
   audioUrl?: string;
   rating: number;
@@ -33,6 +35,8 @@ const CompanionCard = ({
   location,
   image,
   gallery,
+  videos,
+  videoThumbnails,
   adVideo,
   audioUrl,
   rating,
@@ -61,7 +65,7 @@ const CompanionCard = ({
   const reliabilityPercent = 92;
 
   const handleViewProfile = () => {
-    navigate(`/perfil/${id}`);
+    setShowAdPreview(true);
   };
 
   const formatPhoneForWhatsApp = (phoneNumber: string) => {
@@ -140,8 +144,8 @@ const CompanionCard = ({
   return (
     <>
       <div
-        className={`group relative aspect-[3/4] w-full cursor-pointer overflow-hidden rounded-2xl border bg-gray-100 shadow-[0_10px_30px_-12px_rgba(0,0,0,0.28)] transition-all duration-300 hover:scale-[1.01] hover:shadow-xl ${
-          isAmbassador ? 'border-yellow-400 shadow-yellow-400/20' : 'border-gray-200'
+        className={`group relative aspect-[3/4] w-full cursor-pointer overflow-hidden rounded-2xl bg-gray-100 shadow-soft transition-all duration-300 hover:shadow-xl ${
+          isAmbassador ? 'ring-2 ring-yellow-400 shadow-yellow-400/20' : ''
         }`}
         onClick={handleViewProfile}
       >
@@ -159,13 +163,13 @@ const CompanionCard = ({
             />
             <button
               onClick={(e) => { e.stopPropagation(); setVideoMuted(m => !m); }}
-              className="absolute left-1/2 top-[34%] z-20 flex h-11 w-11 -translate-x-1/2 items-center justify-center rounded-full border border-white/40 bg-white/20 text-white shadow-lg backdrop-blur-md transition-all hover:scale-110 hover:bg-white/35"
+              className="absolute left-1/2 top-[42%] z-20 flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-white/50 bg-white/20 text-white shadow-lg backdrop-blur-md transition-transform hover:scale-110 sm:top-[40%] sm:h-16 sm:w-16"
               title={videoMuted ? 'Ativar som' : 'Silenciar'}
             >
               {videoMuted ? (
-                <Volume2 className="h-5 w-5 opacity-50" />
+                <Volume2 className="h-7 w-7 opacity-50 sm:h-8 sm:w-8" />
               ) : (
-                <Volume2 className="h-5 w-5" />
+                <Volume2 className="h-7 w-7 sm:h-8 sm:w-8" />
               )}
             </button>
           </>
@@ -181,19 +185,29 @@ const CompanionCard = ({
           />
         )}
 
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/95 via-black/55 to-transparent" />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent" />
+        {!adVideo && (
+          <>
+            <div className="pointer-events-none absolute inset-0 bg-black/10 transition-colors group-hover:bg-black/5" />
+            <div className="pointer-events-none absolute left-1/2 top-[42%] -translate-x-1/2 -translate-y-1/2 sm:top-[40%]">
+              <div className="flex h-14 w-14 items-center justify-center rounded-full border border-white/50 bg-white/20 shadow-lg backdrop-blur-md transition-transform group-hover:scale-110 sm:h-16 sm:w-16">
+                <Play className="ml-1 h-8 w-8 fill-white text-white sm:h-9 sm:w-9" />
+              </div>
+            </div>
+          </>
+        )}
 
-        <div className="absolute left-3 top-3 z-20 flex flex-col items-start gap-2">
+        <div className="absolute left-4 top-4 z-20 flex flex-col items-start gap-2">
           {isAmbassador && (
             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-yellow-400/90 shadow-lg backdrop-blur-sm">
               <Crown className="h-5 w-5 text-yellow-800" />
             </div>
           )}
 
-          <div className={`${isAvailable ? 'bg-green-500/90' : 'bg-red-500/90'} flex items-center gap-1.5 rounded-full px-2.5 py-1 shadow-md backdrop-blur-md`}>
+          <div className={`${isAvailable ? 'bg-green-500/90' : 'bg-red-500/90'} flex items-center gap-1.5 rounded-full px-3 py-1 shadow-md backdrop-blur-md`}>
             <span className="h-1.5 w-1.5 rounded-full bg-white" />
             <span className="text-[10px] font-bold uppercase tracking-wider text-white">
-              {isAvailable ? 'Disponível' : 'Offline'}
+              {isAvailable ? 'Disponível Agora' : 'Offline'}
             </span>
           </div>
 
@@ -235,24 +249,15 @@ const CompanionCard = ({
           </button>
         </div>
 
-        <div
-          className="absolute inset-x-0 bottom-0 z-10 flex flex-col px-4 pb-4 pt-28"
-          style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.94) 0%, rgba(0,0,0,0.68) 58%, transparent 100%)' }}
-        >
+        <div className="absolute inset-x-0 bottom-0 z-10 flex flex-col bg-gradient-to-t from-black/90 via-black/60 to-transparent p-4 pt-24 sm:p-5 sm:pt-32">
           {pricePerHour && (
-            <span className="mb-3 inline-flex w-fit rounded-full bg-white/15 px-3 py-1 text-sm font-bold text-white shadow-sm backdrop-blur-sm">
+            <span className="mb-2 inline-flex w-fit rounded-full bg-white/15 px-3 py-1 text-xs font-bold text-white shadow-sm backdrop-blur-sm sm:mb-3 sm:text-sm">
               {String(pricePerHour).startsWith('R$') ? pricePerHour : `R$ ${Number(pricePerHour).toLocaleString('pt-BR', { minimumFractionDigits: 0 })}`}/h
             </span>
           )}
 
-          {description && (
-            <p className="mb-3 line-clamp-2 text-sm italic font-medium leading-snug text-white/80">
-              &ldquo;{description}&rdquo;
-            </p>
-          )}
-
-          <div className="mb-2 flex items-center gap-2">
-            <h3 className="truncate text-xl font-bold leading-tight text-white">
+          <div className="mb-1.5 flex items-center gap-2 sm:mb-2">
+            <h3 className="truncate text-lg font-bold leading-tight text-white sm:text-xl">
               {name}{age ? `, ${age}` : ''}
             </h3>
             {isAvailable && (
@@ -260,36 +265,36 @@ const CompanionCard = ({
             )}
           </div>
 
-          <p className="mb-4 flex items-center gap-1 text-sm font-medium text-gray-300">
-            <Globe className="h-3.5 w-3.5 flex-shrink-0 text-pink-300" />
-            <span className="truncate">{formatLocation(location)}</span>
-          </p>
-
-          <div className="mb-4">
+          <div className="mb-2.5 sm:mb-3">
             <div className="mb-1 flex items-center justify-between">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-white/75">
+              <span className="text-[9px] font-bold uppercase tracking-wider text-white/75 sm:text-[10px]">
                 Confiabilidade: {reliabilityPercent}%
               </span>
             </div>
-            <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/20">
+            <div className="h-1 w-full overflow-hidden rounded-full bg-white/20 backdrop-blur-sm">
               <div className="h-full rounded-full bg-green-400" style={{ width: `${reliabilityPercent}%` }} />
             </div>
           </div>
 
+          <p className="mb-3 flex items-center gap-1 text-xs font-medium text-gray-200 sm:mb-4 sm:text-sm">
+            <Globe className="h-3.5 w-3.5 flex-shrink-0 text-gray-200 sm:h-4 sm:w-4" />
+            <span className="truncate">{formatLocation(location)}</span>
+          </p>
+
           {audioUrl && audioUrl.trim() !== '' && (
             <div
-              className="mb-4 flex cursor-pointer items-center gap-3 rounded-xl bg-white/10 p-3 text-white backdrop-blur-md transition-colors hover:bg-white/20"
+              className="mb-3 flex cursor-pointer items-center gap-2 rounded-xl bg-white/10 p-2.5 text-white backdrop-blur-md transition-colors hover:bg-white/20 sm:mb-4 sm:gap-3 sm:p-3"
               onClick={toggleAudio}
             >
-              <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-pink-100">
+              <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-pink-100 sm:h-8 sm:w-8">
                 {isPlaying ? (
-                  <Pause className="h-4 w-4 text-pink-700" />
+                  <Pause className="h-3.5 w-3.5 text-pink-700 sm:h-4 sm:w-4" />
                 ) : (
-                  <Play className="h-4 w-4 text-pink-700" />
+                  <Play className="h-3.5 w-3.5 text-pink-700 sm:h-4 sm:w-4" />
                 )}
               </div>
-              <span className="text-xs font-bold text-white">Ouça minha voz</span>
-              <div className="flex h-6 flex-1 items-center">
+              <span className="text-[10px] font-bold text-white sm:text-xs">Ouça minha voz</span>
+              <div className="flex h-5 flex-1 items-center sm:h-6">
                 <div className="flex h-full w-full items-center gap-[2px] opacity-75">
                   {waveHeights.map((height, i) => {
                     const progress = duration > 0 ? currentTime / duration : 0;
@@ -310,29 +315,29 @@ const CompanionCard = ({
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-3">
             <button
-              className="flex h-11 items-center justify-center rounded-xl border border-white/35 text-sm font-bold text-white transition-colors hover:bg-white/15"
+              className="flex h-10 items-center justify-center rounded-xl border border-white/40 text-xs font-bold text-white backdrop-blur-sm transition-colors hover:bg-white/10 sm:h-11 sm:text-sm"
               onClick={(e) => {
                 e.stopPropagation();
                 setShowAdPreview(true);
               }}
             >
-              <Eye className="mr-2 h-4 w-4" /> Ver Anúncio
+              Ver Perfil
             </button>
             {isAvailable ? (
               <button
-                className="flex h-11 items-center justify-center gap-1.5 rounded-xl bg-[#da0b7d] text-sm font-bold text-white shadow-md transition-colors hover:bg-[#b00965]"
+                className="flex h-10 items-center justify-center gap-1.5 rounded-xl bg-[#da0b7d] text-xs font-bold text-white shadow-lg shadow-[#da0b7d]/30 transition-colors hover:bg-[#b00965] sm:h-11 sm:text-sm"
                 onClick={(e) => {
                   e.stopPropagation();
                   setShowContactPopup(true);
                 }}
               >
-                <MessageSquare className="h-4 w-4 fill-current" />
+                <MessageSquare className="h-3.5 w-3.5 fill-current sm:h-4 sm:w-4" />
                 CONTATO
               </button>
             ) : (
-              <div className="flex h-11 items-center justify-center rounded-xl bg-white/15 text-center text-xs font-bold text-white/70">
+              <div className="flex h-10 items-center justify-center rounded-xl bg-white/15 text-center text-xs font-bold text-white/70 sm:h-11">
                 Offline
               </div>
             )}
@@ -440,7 +445,8 @@ const CompanionCard = ({
             location,
             image,
             gallery,
-            videos: adVideo ? [adVideo] : [],
+            videos: Array.from(new Set([adVideo, ...(videos || [])].filter(Boolean) as string[])),
+            videoThumbnails,
             audioUrl,
             adVideo,
             rating,
