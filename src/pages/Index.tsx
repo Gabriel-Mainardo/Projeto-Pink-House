@@ -234,10 +234,21 @@ const ContactPopup: React.FC<{ name: string; phone?: string; id: string; onClose
   );
 };
 
+const getProfileVideoUrl = (profile: Acompanhante) => {
+  const candidates = [
+    profile.adVideo,
+    profile.ad_video,
+    profile.video_url,
+    ...(profile.videos || []),
+  ];
+
+  return candidates.find((url): url is string => Boolean(url && url.trim()))?.trim() || '';
+};
+
 const buildAdPreviewProfile = (profile: Acompanhante, reliabilityScore: number, rank?: number) => ({
   ...profile,
   audioUrl: profile.audioUrl || profile.audio_url,
-  adVideo: profile.adVideo || profile.video_url,
+  adVideo: getProfileVideoUrl(profile),
   videoThumbnails: profile.videoThumbnails || profile.video_thumbnails,
   isAvailable: profile.is_available,
   isVerified: profile.is_verified,
@@ -250,7 +261,7 @@ const ProfileCard: React.FC<ProfileCardProps> = ({ profile, rank }) => {
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
   const [showContactPopup, setShowContactPopup] = useState(false);
   const [showAdPreview, setShowAdPreview] = useState(false);
-  const featuredVideoUrl = profile.videos?.[0] || profile.video_url || '';
+  const featuredVideoUrl = getProfileVideoUrl(profile);
   const cardVideoRef = useRef<HTMLVideoElement>(null);
   const reliabilityScore = Math.max(0, Math.min(100, Number(profile.reliability_score) || 0));
   const reliabilityFillClass =
@@ -259,43 +270,20 @@ const ProfileCard: React.FC<ProfileCardProps> = ({ profile, rank }) => {
     'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]';
   const isTopThreeCard = Boolean(rank && rank <= 3);
 
-  const toggleFeaturedVideo = (event?: React.SyntheticEvent) => {
-    event?.preventDefault();
-    event?.stopPropagation();
-
+  const toggleFeaturedVideo = () => {
     if (!featuredVideoUrl || !cardVideoRef.current) return;
 
     const video = cardVideoRef.current;
 
     if (video.paused) {
-      void video.play()
-        .then(() => setIsVideoPlaying(true))
-        .catch((error) => {
-          console.error('Erro ao reproduzir vídeo do destaque:', error);
-          setIsVideoPlaying(false);
-        });
+      void video.play().catch((error) => {
+        console.error('Erro ao reproduzir vídeo do destaque:', error);
+      });
       return;
     }
 
     video.pause();
-    setIsVideoPlaying(false);
   };
-
-  useEffect(() => {
-    if (!isFeatured || !featuredVideoUrl || !cardVideoRef.current) return;
-
-    const video = cardVideoRef.current;
-
-    if (!isVideoPlaying) {
-      video.pause();
-      return;
-    }
-
-    void video.play().catch((error) => {
-      console.error('Erro ao reproduzir vídeo do destaque:', error);
-      setIsVideoPlaying(false);
-    });
-  }, [isFeatured, isVideoPlaying, featuredVideoUrl]);
 
   const handleCardNavigation = (e: React.MouseEvent<HTMLDivElement>) => {
     const target = e.target as HTMLElement;
@@ -322,8 +310,8 @@ const ProfileCard: React.FC<ProfileCardProps> = ({ profile, rank }) => {
               className="absolute inset-0 w-full h-full object-cover"
               playsInline
               preload="metadata"
-              data-card-interactive="true"
-              onClick={toggleFeaturedVideo}
+              onPlay={() => setIsVideoPlaying(true)}
+              onPause={() => setIsVideoPlaying(false)}
               onEnded={() => setIsVideoPlaying(false)}
             />
           ) : (
@@ -334,24 +322,21 @@ const ProfileCard: React.FC<ProfileCardProps> = ({ profile, rank }) => {
             />
           )}
           <div className="pointer-events-none absolute inset-0 bg-black/10 transition-colors group-hover:bg-black/5" />
-          <div className="pointer-events-none absolute left-1/2 top-[42%] -translate-x-1/2 -translate-y-1/2 sm:top-[40%]">
+          <div
+            className="absolute left-1/2 top-[42%] z-30 -translate-x-1/2 -translate-y-1/2 sm:top-[40%]"
+            data-card-interactive="true"
+            onClick={(e) => e.stopPropagation()}
+          >
             {featuredVideoUrl ? (
               <button
                 type="button"
-                onPointerDown={(e) => {
+                onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                }}
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                }}
-                onClick={toggleFeaturedVideo}
-                onTouchStart={(e) => {
-                  e.stopPropagation();
+                  toggleFeaturedVideo();
                 }}
                 data-card-interactive="true"
-                className="pointer-events-auto relative z-30 flex h-14 w-14 items-center justify-center rounded-full border border-white/50 bg-white/20 shadow-lg backdrop-blur-md transition-transform group-hover:scale-110 sm:h-16 sm:w-16"
+                className="flex h-14 w-14 items-center justify-center rounded-full border border-white/50 bg-white/20 shadow-lg backdrop-blur-md transition-transform group-hover:scale-110 sm:h-16 sm:w-16"
                 aria-label={`Reproduzir/Pausar video de ${profile.name}`}
               >
                 {isVideoPlaying ? (
@@ -361,7 +346,13 @@ const ProfileCard: React.FC<ProfileCardProps> = ({ profile, rank }) => {
                 )}
               </button>
             ) : (
-              <div className="relative z-30 flex h-14 w-14 items-center justify-center rounded-full border border-white/50 bg-white/20 shadow-lg backdrop-blur-md transition-transform group-hover:scale-110 sm:h-16 sm:w-16">
+              <div
+                className="pointer-events-auto relative z-30 flex h-14 w-14 items-center justify-center rounded-full border border-white/50 bg-white/20 shadow-lg backdrop-blur-md transition-transform group-hover:scale-110 sm:h-16 sm:w-16"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+              >
                 <Play className="ml-1 h-8 w-8 fill-white text-white sm:h-9 sm:w-9" />
               </div>
             )}
@@ -487,11 +478,6 @@ const ProfileCard: React.FC<ProfileCardProps> = ({ profile, rank }) => {
       />
       <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent" />
       <div className="pointer-events-none absolute inset-0 bg-black/10 transition-colors group-hover:bg-black/5" />
-      <div className="pointer-events-none absolute left-1/2 top-[42%] -translate-x-1/2 -translate-y-1/2 sm:top-[40%]">
-        <div className="flex h-14 w-14 items-center justify-center rounded-full border border-white/50 bg-white/20 shadow-lg backdrop-blur-md transition-transform group-hover:scale-110 sm:h-16 sm:w-16">
-          <Play className="ml-1 h-8 w-8 fill-white text-white sm:h-9 sm:w-9" />
-        </div>
-      </div>
 
       {/* Badge Disponível Agora */}
       {profile.is_available && (
@@ -510,21 +496,6 @@ const ProfileCard: React.FC<ProfileCardProps> = ({ profile, rank }) => {
           {profile.is_available && (
             <div className="w-2.5 h-2.5 bg-green-500 rounded-full flex-shrink-0 shadow-[0_0_6px_rgba(34,197,94,0.7)]" />
           )}
-        </div>
-
-        {/* Location */}
-        <div className="mb-2.5 sm:mb-3">
-          <div className="mb-1 flex items-center justify-between">
-            <span className="text-[9px] font-bold uppercase tracking-wider text-white/75 sm:text-[10px]">
-              Confiabilidade: {reliabilityScore}%
-            </span>
-          </div>
-          <div className="h-1 w-full overflow-hidden rounded-full bg-white/20 backdrop-blur-sm">
-            <div
-              className={`h-full rounded-full ${reliabilityFillClass}`}
-              style={{ width: `${reliabilityScore}%` }}
-            />
-          </div>
         </div>
 
         <p className="mb-3 flex items-center gap-1 text-xs font-medium text-gray-200 sm:mb-4 sm:text-sm">

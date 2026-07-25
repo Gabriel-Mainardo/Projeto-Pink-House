@@ -187,14 +187,7 @@ const CompanionCard = ({
 
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent" />
         {!adVideo && (
-          <>
-            <div className="pointer-events-none absolute inset-0 bg-black/10 transition-colors group-hover:bg-black/5" />
-            <div className="pointer-events-none absolute left-1/2 top-[42%] -translate-x-1/2 -translate-y-1/2 sm:top-[40%]">
-              <div className="flex h-14 w-14 items-center justify-center rounded-full border border-white/50 bg-white/20 shadow-lg backdrop-blur-md transition-transform group-hover:scale-110 sm:h-16 sm:w-16">
-                <Play className="ml-1 h-8 w-8 fill-white text-white sm:h-9 sm:w-9" />
-              </div>
-            </div>
-          </>
+          <div className="pointer-events-none absolute inset-0 bg-black/10 transition-colors group-hover:bg-black/5" />
         )}
 
         <div className="absolute left-4 top-4 z-20 flex flex-col items-start gap-2">
@@ -263,17 +256,6 @@ const CompanionCard = ({
             {isAvailable && (
               <span className="h-2.5 w-2.5 flex-shrink-0 rounded-full bg-green-500 shadow-[0_0_6px_rgba(34,197,94,0.7)]" />
             )}
-          </div>
-
-          <div className="mb-2.5 sm:mb-3">
-            <div className="mb-1 flex items-center justify-between">
-              <span className="text-[9px] font-bold uppercase tracking-wider text-white/75 sm:text-[10px]">
-                Confiabilidade: {reliabilityPercent}%
-              </span>
-            </div>
-            <div className="h-1 w-full overflow-hidden rounded-full bg-white/20 backdrop-blur-sm">
-              <div className="h-full rounded-full bg-green-400" style={{ width: `${reliabilityPercent}%` }} />
-            </div>
           </div>
 
           <p className="mb-3 flex items-center gap-1 text-xs font-medium text-gray-200 sm:mb-4 sm:text-sm">
