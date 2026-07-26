@@ -45,7 +45,8 @@ export interface Acompanhante {
   image: string
   gallery?: string[] // Array de URLs das imagens da galeria
   audio_url?: string // URL do áudio de apresentação (15 segundos)
-  video_url?: string // URL do vídeo de apresentação (10 segundos)
+  video_url?: string | null // URL do vídeo de apresentação (10 segundos)
+  ad_video?: string | null // Vídeo exibido no card do anúncio
   rating: number
   tags: string[]
   is_featured: boolean
@@ -104,7 +105,7 @@ function convertAcompanhanteFromDB(data: any): Acompanhante {
 }
 
 // Função para converter dados do frontend (camelCase) para banco (snake_case)
-const convertAcompanhanteToDB = (frontendData: Partial<Acompanhante>): any => {
+const convertAcompanhanteToDB = (frontendData: Partial<Acompanhante>): Record<string, unknown> => {
   const { 
     pricePerHour, 
     hasOwnLocation, 
@@ -117,22 +118,27 @@ const convertAcompanhanteToDB = (frontendData: Partial<Acompanhante>): any => {
     ...rest 
   } = frontendData;
   
-  return {
-    ...rest,
-    // Campos de nome
-    name: display_name || name,
-    real_name,
-    display_name,
-    // Campos de preço e atendimento em snake_case
-    priceperhour: pricePerHour,
-    hasownlocation: hasOwnLocation,
-    acceptsclientlocation: acceptsClientLocation,
-    acceptsmotel: acceptsMotel,
-    // Garantir que videos seja sempre um array válido
-    videos: videos && Array.isArray(videos) ? videos.filter(url => url && url.trim() !== '') : [],
-    // Manter video_url sincronizado com o primeiro vídeo (para compatibilidade)
-    video_url: videos && videos.length > 0 ? videos[0] : null
-  };
+  const dbData: Record<string, unknown> = { ...rest };
+
+  if (name !== undefined || display_name !== undefined) {
+    dbData.name = display_name || name;
+  }
+  if (real_name !== undefined) dbData.real_name = real_name;
+  if (display_name !== undefined) dbData.display_name = display_name;
+  if (pricePerHour !== undefined) dbData.priceperhour = pricePerHour;
+  if (hasOwnLocation !== undefined) dbData.hasownlocation = hasOwnLocation;
+  if (acceptsClientLocation !== undefined) dbData.acceptsclientlocation = acceptsClientLocation;
+  if (acceptsMotel !== undefined) dbData.acceptsmotel = acceptsMotel;
+
+  if (videos !== undefined) {
+    const validVideos = Array.isArray(videos)
+      ? videos.filter((url) => url && url.trim() !== '')
+      : [];
+    dbData.videos = validVideos;
+    dbData.video_url = validVideos[0] || null;
+  }
+
+  return dbData;
 };
 
 export interface CadastroPendente {

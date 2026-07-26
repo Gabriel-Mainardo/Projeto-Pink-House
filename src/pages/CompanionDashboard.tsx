@@ -4,6 +4,7 @@ import { acompanhantesService, supabase, type Acompanhante } from '../lib/supaba
 import * as messagesService from '../services/messagesService';
 import ProfileVerificationModal from '../components/ProfileVerificationModal';
 import { EditAcompanhanteModal } from '../components/EditAcompanhanteModal';
+import ProfileMediaManager from '../components/ProfileMediaManager';
 import { getReliabilityScore } from '../services/verificationService';
 import { useToast } from '../hooks/use-toast';
 import {
@@ -31,7 +32,6 @@ import {
   Star,
   Trophy,
   User,
-  Users,
   X,
   Zap
 } from 'lucide-react';
@@ -537,7 +537,7 @@ const CompanionDashboard: React.FC = () => {
         email: updates.email || parsedUser.email,
         location: updates.location || parsedUser.location,
         age: updates.age || parsedUser.age,
-        image: updates.gallery?.[0] || updates.image || parsedUser.image
+        image: updates.image || updates.gallery?.[0] || parsedUser.image
       };
       localStorage.setItem('user', JSON.stringify(nextUser));
       window.dispatchEvent(new Event('storage'));
@@ -595,6 +595,12 @@ const CompanionDashboard: React.FC = () => {
       console.error('Erro ao salvar perfil:', err);
       throw new Error(err?.message || 'Não foi possível salvar as alterações. Tente novamente.');
     }
+  };
+
+  const handleMediaProfileChange = (updatedProfile: Acompanhante) => {
+    setCompanionProfile(updatedProfile);
+    setUserAvatar(updatedProfile.image || updatedProfile.gallery?.[0] || null);
+    syncLocalUser(updatedProfile);
   };
 
   const handleSaveLocation = async (location: string) => {
@@ -894,29 +900,92 @@ const CompanionDashboard: React.FC = () => {
         </div>
       </div>
 
-      <div
-        className="relative mt-10 flex flex-col items-center justify-between overflow-hidden rounded-[32px] p-8 text-white shadow-xl shadow-blue-100 lg:flex-row lg:p-10"
-        style={{ background: 'linear-gradient(135deg, #7C3AED 0%, #3B82F6 100%)' }}
-      >
-        <div className="z-10 flex items-center gap-6">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/20 backdrop-blur-md">
-            <Users size={32} />
-          </div>
-          <div>
-            <h3 className="mb-1 text-2xl font-bold">Indique e ganhe</h3>
-            <p className="text-white/80">Convide outras acompanhantes e ganhe PinkUps.</p>
-          </div>
+      <section className="mt-10 border-y border-gray-200 bg-white px-4 py-6 sm:px-6">
+        <div className="mb-5">
+          <h3 className="text-lg font-bold text-gray-900">Controles do anuncio</h3>
+          <p className="mt-1 text-sm text-gray-500">
+            Publicacao, dados, seguranca, midia e destaque reunidos em um unico lugar.
+          </p>
         </div>
-        <button
-          className="z-10 mt-6 flex cursor-not-allowed items-center gap-2 rounded-2xl bg-white/50 px-8 py-3 font-semibold text-blue-400 shadow-lg lg:mt-0"
-          disabled
-        >
-          <Lock size={14} /> Em breve
-        </button>
 
-        <div className="absolute -bottom-10 -left-10 h-48 w-48 rounded-full bg-white/5" />
-        <div className="absolute right-0 top-0 -mr-20 -mt-20 h-64 w-64 rounded-full bg-white/5" />
-      </div>
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+          <button
+            type="button"
+            onClick={handleToggleAvailability}
+            className="min-h-[116px] rounded-lg border border-gray-200 p-4 text-left transition-colors hover:border-[#d91d83]/40 hover:bg-pink-50/40"
+          >
+            <BroadcastIcon size={20} className={isAvailable ? 'text-green-600' : 'text-gray-500'} />
+            <span className="mt-3 block text-sm font-bold text-gray-900">Publicacao</span>
+            <span className={`mt-1 block text-xs font-semibold ${isAvailable ? 'text-green-600' : 'text-gray-500'}`}>
+              {isAvailable ? 'Perfil online' : 'Perfil offline'}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleEditInfo}
+            className="min-h-[116px] rounded-lg border border-gray-200 p-4 text-left transition-colors hover:border-purple-300 hover:bg-purple-50/40"
+          >
+            <Edit2 size={20} className="text-purple-600" />
+            <span className="mt-3 block text-sm font-bold text-gray-900">Informacoes</span>
+            <span className="mt-1 block text-xs font-medium text-gray-500">Editar dados e servicos</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setShowVerificationModal(true)}
+            className="min-h-[116px] rounded-lg border border-gray-200 p-4 text-left transition-colors hover:border-green-300 hover:bg-green-50/40"
+          >
+            <ShieldCheck size={20} className="text-green-600" />
+            <span className="mt-3 block text-sm font-bold text-gray-900">Verificacoes</span>
+            <span className="mt-1 block text-xs font-semibold text-green-700">{reliability}% concluido</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => document.getElementById('profile-media-title')?.scrollIntoView({ behavior: 'smooth' })}
+            className="min-h-[116px] rounded-lg border border-gray-200 p-4 text-left transition-colors hover:border-pink-300 hover:bg-pink-50/40"
+          >
+            <Image size={20} className="text-[#d91d83]" />
+            <span className="mt-3 block text-sm font-bold text-gray-900">Fotos e videos</span>
+            <span className="mt-1 block text-xs font-medium text-gray-500">
+              {companionProfile?.gallery?.length || 0} fotos, {companionProfile?.videos?.length || 0} videos
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => navigate('/subidas')}
+            className="min-h-[116px] rounded-lg border border-gray-200 p-4 text-left transition-colors hover:border-indigo-300 hover:bg-indigo-50/40"
+          >
+            <Rocket size={20} className="text-indigo-600" />
+            <span className="mt-3 block text-sm font-bold text-gray-900">Subidas</span>
+            <span className="mt-1 block text-xs font-semibold text-indigo-700">
+              {activeBoostData ? `${activeBoostData.hoursRemaining.toFixed(1)}h restantes` : 'Ativar destaque'}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleViewProfile}
+            className="min-h-[116px] rounded-lg border border-gray-200 p-4 text-left transition-colors hover:border-blue-300 hover:bg-blue-50/40"
+          >
+            <Eye size={20} className="text-blue-600" />
+            <span className="mt-3 block text-sm font-bold text-gray-900">Perfil publico</span>
+            <span className="mt-1 block text-xs font-medium text-gray-500">Visualizar como cliente</span>
+          </button>
+        </div>
+      </section>
+
+      {companionId && companionProfile && (
+        <div className="mt-10">
+          <ProfileMediaManager
+            companionId={companionId}
+            profile={companionProfile}
+            onProfileChange={handleMediaProfileChange}
+          />
+        </div>
+      )}
     </>
   );
 
