@@ -268,7 +268,7 @@ const ProfileCard: React.FC<ProfileCardProps> = ({ profile, rank }) => {
     reliabilityScore >= 80 ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' :
     reliabilityScore >= 50 ? 'bg-yellow-400 shadow-[0_0_8px_rgba(250,204,21,0.6)]' :
     'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]';
-  const isTopThreeCard = Boolean(rank && rank <= 3);
+  const rankBadgeClass = rank && rank <= 3 ? `rank-${rank}-new` : 'rank-standard-new';
 
   const toggleFeaturedVideo = () => {
     if (!featuredVideoUrl || !cardVideoRef.current) return;
@@ -367,9 +367,9 @@ const ProfileCard: React.FC<ProfileCardProps> = ({ profile, rank }) => {
           </div>
 
           {/* Rank Badge */}
-          {rank && rank <= 3 && (
+          {rank && (
             <div className="absolute right-4 top-4 z-30">
-              <div className={`premium-rank-badge rank-${rank}-new`}>
+              <div className={`premium-rank-badge ${rankBadgeClass}`}>
                 <div className="rank-glow-effect"></div>
                 <span className="rank-num">{rank}º</span>
                 <span className="rank-top-text uppercase">TOP {rank}</span>
@@ -382,7 +382,7 @@ const ProfileCard: React.FC<ProfileCardProps> = ({ profile, rank }) => {
           <div className="absolute bottom-0 left-0 right-0 flex flex-col bg-gradient-to-t from-black/90 via-black/60 to-transparent p-4 pt-24 sm:p-5 sm:pt-32">
 
             {/* Description */}
-            {isTopThreeCard && profile.description && (
+            {profile.description && (
               <p className="mb-2 line-clamp-1 text-xs font-medium italic leading-tight text-white/90 drop-shadow-md sm:mb-3 sm:line-clamp-2 sm:text-sm">
                 &ldquo;{profile.description}&rdquo;
               </p>
@@ -468,7 +468,7 @@ const ProfileCard: React.FC<ProfileCardProps> = ({ profile, rank }) => {
   return (
     <>
       <div
-        className="group relative aspect-[3/4] cursor-pointer overflow-hidden rounded-2xl bg-gray-100 shadow-soft transition-all duration-300 hover:shadow-lg"
+        className="group relative aspect-[3/4] cursor-pointer overflow-hidden rounded-lg bg-gray-100 shadow-sm transition-all duration-300 hover:shadow-lg sm:rounded-2xl sm:shadow-soft"
         onClick={handleCardNavigation}
       >
       <img
@@ -481,41 +481,43 @@ const ProfileCard: React.FC<ProfileCardProps> = ({ profile, rank }) => {
 
       {/* Badge Disponível Agora */}
       {profile.is_available && (
-        <div className="absolute left-4 top-4">
-          <div className="flex items-center gap-1 rounded-full bg-green-500/90 px-3 py-1 shadow-md backdrop-blur-md">
-            <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
-            <span className="text-[10px] font-bold uppercase tracking-wider text-white">Disponível Agora</span>
+        <div className="absolute left-2 top-2 sm:left-4 sm:top-4">
+          <div className="flex items-center gap-1 rounded-full bg-green-500/90 px-1.5 py-0.5 shadow-md backdrop-blur-md sm:px-3 sm:py-1">
+            <span className="h-1 w-1 animate-pulse rounded-full bg-white sm:h-1.5 sm:w-1.5" />
+            <span className="text-[7px] font-bold uppercase text-white sm:text-[10px] sm:tracking-wider">
+              Disponível Agora
+            </span>
           </div>
         </div>
       )}
 
-      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent p-4 pt-20 sm:p-5 sm:pt-24">
+      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent p-2 pt-12 sm:p-5 sm:pt-24">
         {/* Name + status */}
-        <div className="mb-1.5 flex items-center gap-2 sm:mb-2">
-          <h3 className="min-w-0 truncate text-lg font-bold leading-tight text-white sm:text-xl">{profile.name}, {profile.age}</h3>
+        <div className="mb-1 flex items-center gap-1 sm:mb-2 sm:gap-2">
+          <h3 className="min-w-0 truncate text-sm font-bold leading-tight text-white sm:text-xl">{profile.name}, {profile.age}</h3>
           {profile.is_available && (
-            <div className="w-2.5 h-2.5 bg-green-500 rounded-full flex-shrink-0 shadow-[0_0_6px_rgba(34,197,94,0.7)]" />
+            <div className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-green-500 shadow-[0_0_6px_rgba(34,197,94,0.7)] sm:h-2.5 sm:w-2.5" />
           )}
         </div>
 
-        <p className="mb-3 flex items-center gap-1 text-xs font-medium text-gray-200 sm:mb-4 sm:text-sm">
-          <MapPin className="h-3.5 w-3.5 flex-shrink-0 text-gray-200 sm:h-4 sm:w-4" />
+        <p className="mb-2 flex items-center gap-0.5 text-[9px] font-medium text-gray-200 sm:mb-4 sm:gap-1 sm:text-sm">
+          <MapPin className="h-3 w-3 flex-shrink-0 text-gray-200 sm:h-4 sm:w-4" />
           <span className="truncate">{profile.location}</span>
         </p>
 
         {/* Buttons */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-1.5 sm:gap-3">
           <button
             onClick={(e) => { e.stopPropagation(); setShowAdPreview(true); }}
-            className="flex h-10 items-center justify-center rounded-xl border border-white/40 text-xs font-bold text-white backdrop-blur-sm transition-colors hover:bg-white/10 sm:h-11 sm:text-sm"
+            className="flex h-8 min-w-0 items-center justify-center rounded-lg border border-white/40 px-1 text-[9px] font-bold text-white backdrop-blur-sm transition-colors hover:bg-white/10 sm:h-11 sm:rounded-xl sm:text-sm"
           >
             Ver Perfil
           </button>
           <button
             onClick={(e) => { e.stopPropagation(); setShowContactPopup(true); }}
-            className="flex h-10 items-center justify-center gap-2 rounded-xl bg-[#da0b7d] text-xs font-bold text-white shadow-lg shadow-[#da0b7d]/30 transition-colors hover:bg-[#b00965] sm:h-11 sm:text-sm"
+            className="flex h-8 min-w-0 items-center justify-center gap-1 rounded-lg bg-[#da0b7d] px-1 text-[9px] font-bold text-white shadow-md shadow-[#da0b7d]/30 transition-colors hover:bg-[#b00965] sm:h-11 sm:gap-2 sm:rounded-xl sm:text-sm sm:shadow-lg"
           >
-            <MessageSquare className="h-3.5 w-3.5 fill-current sm:h-4 sm:w-4" />
+            <MessageSquare className="h-3 w-3 flex-shrink-0 fill-current sm:h-4 sm:w-4" />
             <span>CONTATO</span>
           </button>
         </div>
@@ -756,30 +758,7 @@ const Index: React.FC = () => {
   const getProfileReliabilityScore = (profile: Acompanhante) =>
     Math.max(0, Math.min(100, Number(profile.reliability_score) || 0));
 
-  // Ranking: boost ativo primeiro → mais recente primeiro → mais caro como desempate → disponível → destaque → rating
-  const boostSort = (a: any, b: any) => {
-    // 1. Boost ativo tem prioridade máxima
-    if (a.hasBoost && !b.hasBoost) return -1;
-    if (!a.hasBoost && b.hasBoost) return 1;
-    // 2. Entre boosts: mais recente primeiro
-    if (a.hasBoost && b.hasBoost) {
-      const startDiff = new Date(b.boostStartedAt || 0).getTime() - new Date(a.boostStartedAt || 0).getTime();
-      if (startDiff !== 0) return startDiff;
-      // 3. Empate: mais caro primeiro
-      const amountDiff = (b.boostAmountPaid || 0) - (a.boostAmountPaid || 0);
-      if (amountDiff !== 0) return amountDiff;
-      // 4. Prioridade do plano como fallback
-      return (b.boostPriority || 0) - (a.boostPriority || 0);
-    }
-    // Sem boost: disponível > destaque > rating
-    if (a.is_available && !b.is_available) return -1;
-    if (!a.is_available && b.is_available) return 1;
-    if (a.is_featured && !b.is_featured) return -1;
-    if (!a.is_featured && b.is_featured) return 1;
-    return Number(b.rating || 0) - Number(a.rating || 0);
-  };
-
-  // Separar perfis em 4 grupos: subidas, online, offline
+  // Separar perfis em três grupos: subidas, online e offline.
   const boostedProfiles = [...displayCompanions]
     .filter(c => c.hasBoost)
     .sort((a, b) => new Date(b.boostStartedAt || 0).getTime() - new Date(a.boostStartedAt || 0).getTime());
@@ -796,8 +775,8 @@ const Index: React.FC = () => {
     .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
 
   // Para compatibilidade com código existente
-  const featuredProfiles = boostedProfiles.slice(0, 3);
-  const regularProfiles = [...boostedProfiles.slice(3), ...onlineProfiles];
+  const featuredProfiles = boostedProfiles;
+  const regularProfiles = onlineProfiles;
 
   // Handle story click
   const handleStoryClick = (story: StoryFromDB) => {
@@ -993,7 +972,7 @@ const Index: React.FC = () => {
 
           {/* === 2. ONLINE profiles e subidas compactas === */}
           {!loading && regularProfiles.length > 0 && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 mb-8">
+            <div className="mb-8 grid grid-cols-2 gap-3 sm:gap-6 md:grid-cols-4">
               {regularProfiles.map((profile) => (
                 <ProfileCard key={profile.id} profile={{...profile, is_featured: false}} />
               ))}
@@ -1067,7 +1046,7 @@ const Index: React.FC = () => {
 
           {/* === 4. OFFLINE profiles === */}
           {!loading && offlineProfiles.length > 0 && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 mb-10">
+            <div className="mb-10 grid grid-cols-2 gap-3 sm:gap-6 md:grid-cols-4">
               {offlineProfiles.map((profile) => (
                 <ProfileCard key={profile.id} profile={{...profile, is_featured: false}} />
               ))}
@@ -1223,6 +1202,12 @@ const Index: React.FC = () => {
             --rank-color-light: #E2A76F;
             background: linear-gradient(135deg, rgba(205,127,50,0.2) 0%, rgba(92,58,31,0.4) 100%);
             border-color: rgba(205, 127, 50, 0.4);
+          }
+          .rank-standard-new {
+            --rank-color-main: #FF5AA5;
+            --rank-color-light: #FFD0E5;
+            background: linear-gradient(135deg, rgba(255,90,165,0.24) 0%, rgba(90,20,55,0.48) 100%);
+            border-color: rgba(255, 90, 165, 0.45);
           }
           .custom-scrollbar::-webkit-scrollbar {
             height: 4px;

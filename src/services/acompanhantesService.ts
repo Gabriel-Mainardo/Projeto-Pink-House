@@ -202,17 +202,11 @@ export const acompanhantesService = {
       if (!boostsRes.error && boostsRes.data) {
         for (const boost of boostsRes.data) {
           const existing = boostMap.get(boost.companion_id);
-          const currentAmount = Number(boost.amount_paid ?? (boost.boost_plans as any)?.price ?? 0);
-          const existingAmount = Number(existing?.amount_paid ?? (existing?.boost_plans as any)?.price ?? 0);
           const currentStartedAt = new Date(boost.started_at || 0).getTime();
           const existingStartedAt = new Date(existing?.started_at || 0).getTime();
 
-          // Manter o boost mais valioso; em empate, o mais recente
-          if (
-            !existing ||
-            currentAmount > existingAmount ||
-            (currentAmount === existingAmount && currentStartedAt > existingStartedAt)
-          ) {
+          // Cada perfil ocupa uma única posição, definida pela sua subida ativa mais recente.
+          if (!existing || currentStartedAt > existingStartedAt) {
             boostMap.set(boost.companion_id, boost);
           }
         }
