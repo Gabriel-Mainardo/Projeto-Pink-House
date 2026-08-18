@@ -35,6 +35,7 @@ import Wallet from "./pages/Wallet";
 import IndiqueGanhe from "./pages/IndiqueGanhe";
 import PhotoVideoManager from "./pages/PhotoVideoManager";
 import PinkPoints from "./pages/PinkPoints";
+import Rewards from "./pages/Rewards";
 import GanharPinkPoints from "./pages/GanharPinkPoints";
 import ConverterPinkPoints from "./pages/ConverterPinkPoints";
 import MinhasRositas from "./pages/MinhasRositas";
@@ -190,6 +191,7 @@ const AppContent = () => {
         <Route path="/indique-ganhe" element={<IndiqueGanhe />} />
         <Route path="/photo-video-manager" element={<PhotoVideoManager />} />
         <Route path="/pinkpoints" element={<PinkPoints />} />
+        <Route path="/rewards" element={<Rewards />} />
         <Route path="/ganhar-pinkpoints" element={<GanharPinkPoints />} />
         <Route path="/converter-pinkpoints" element={<ConverterPinkPoints />} />
         <Route path="/minhas-rositas" element={<MinhasRositas />} />

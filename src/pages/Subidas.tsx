@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -6,6 +6,9 @@ import SubidasDoPerfil from "../components/SubidasDoPerfil";
 import SubidaSucesso from "../components/SubidaSucesso";
 import { supabase } from "../lib/supabase";
 import { resolveCompanionId } from "../services/verificationService";
+import { pinkcoinService } from "../services/pinkcoinService";
+import { createIdempotencyKey } from "../services/pinkEconomyErrors";
+import { usePinkWallet } from "../hooks/usePinkWallet";
 
 const DAILY_LIMIT_HOURS = 24;
 const MAX_BOOSTS_PER_DAY = 3;
@@ -47,6 +50,8 @@ const Subidas = () => {
   const [sendError, setSendError] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const [videoMode, setVideoMode] = useState<'gravar' | 'galeria' | null>(null);
+  const consumptionKeyRef = useRef<string | null>(null);
+  const { wallet, refresh: refreshWallet } = usePinkWallet();
 
   useEffect(() => {
     const loadUserData = async () => {
@@ -101,15 +106,22 @@ const Subidas = () => {
   useEffect(() => {
     const loadPlans = async () => {
       try {
-        const { data, error } = await supabase
-          .from("boost_plans")
-          .select("*")
-          .eq("is_active", true)
-          .order("position_priority", { ascending: true });
+        const [{ data, error }, resources] = await Promise.all([
+          supabase
+            .from("boost_plans")
+            .select("*")
+            .eq("is_active", true)
+            .order("position_priority", { ascending: true }),
+          pinkcoinService.getActiveResources(),
+        ]);
 
         if (error) throw error;
 
         const planosFormatados = (data || []).map((plan) => {
+          const resource = resources.find((candidate) =>
+            candidate.fulfillment_type === 'boost'
+            && String(candidate.fulfillment_config?.plan_id || '') === plan.id
+          );
           const durLabel =
             plan.duration_hours >= 168 ? `${plan.duration_hours / 24} dias` :
             plan.duration_hours >= 24  ? `${plan.duration_hours / 24} dia${plan.duration_hours / 24 > 1 ? 's' : ''}` :
@@ -117,9 +129,13 @@ const Subidas = () => {
           return {
             id: plan.id,
             titulo: plan.name,
-            resumo: `Ative ${durLabel} de destaque no topo da sua cidade. Gratis no MVP.`,
+            resumo: resource
+              ? `Ative ${durLabel} de destaque no topo da sua cidade com PinkCoins.`
+              : `Ative ${durLabel} de destaque no topo da sua cidade. Gratis no MVP.`,
             badge: `${durLabel} no topo`,
             priceLocal: "Gratis no MVP",
+            pinkcoinCost: resource?.pinkcoin_cost,
+            resourceCode: resource?.code,
             destaque: plan.position_priority === 1,
             dbData: plan
           };
@@ -262,6 +278,7 @@ const Subidas = () => {
     if (!validateBeforeSubida(plano)) return;
 
     setPendingPlano(plano);
+    consumptionKeyRef.current = createIdempotencyKey(plano.resourceCode || 'free-boost');
     setVideoMode(mode);
     setShowVideoSelect(true);
   };
@@ -297,15 +314,24 @@ const Subidas = () => {
         throw new Error("Nenhum plano disponivel. Tente novamente mais tarde.");
       }
 
-      const { data: boostId, error } = await supabase.rpc("create_boost", {
-        p_companion_id: companionId,
-        p_plan_id: planId,
-        p_payment_id: `mvp-free-${Date.now()}`,
-        p_payment_status: "approved",
-        p_payment_method: "free_mvp"
-      });
-
-      if (error) throw error;
+      let boostId: string | null = null;
+      if (plano?.resourceCode) {
+        const result = await pinkcoinService.consumeResource({
+          resourceCode: plano.resourceCode,
+          referenceId: companionId,
+          idempotencyKey: consumptionKeyRef.current || createIdempotencyKey(plano.resourceCode),
+          metadata: { plan_id: planId, selected_video: Boolean(selectedAdVideo) },
+        });
+        boostId = result.boost_id || null;
+        await refreshWallet();
+      } else {
+        const { data, error } = await supabase.rpc("create_free_boost", {
+          p_plan_id: planId,
+          p_idempotency_key: consumptionKeyRef.current || createIdempotencyKey('free-boost'),
+        });
+        if (error) throw error;
+        boostId = data;
+      }
 
       const { data: createdBoost, error: fetchError } = await supabase
         .from("active_boosts")
@@ -325,6 +351,7 @@ const Subidas = () => {
       setLastBoostToday(createdBoost || null);
       setPlanoSelecionado(plano || { badge: "Subida ativada" });
       setShowSucesso(true);
+      consumptionKeyRef.current = null;
       toast.success(`${plano?.titulo || 'Subida'} ativada com sucesso!`);
     } catch (error: any) {
       console.error("Erro ao ativar subida:", error);
@@ -686,6 +713,7 @@ const Subidas = () => {
       onSubir={handleSubir}
       onCancelar={handleCancelar}
       planos={planos}
+      pinkcoinsBalance={wallet?.pinkcoins_balance || 0}
       defaultPlanoId={pendingPlano?.id || searchParams.get("plan") || undefined}
       isSending={isSending || isUploading}
       sendError={sendError}

@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '../hooks/use-toast';
 import { supabase } from '../lib/supabase';
+import { usePinkWallet } from '../hooks/usePinkWallet';
 import RegisterTypeModal from './RegisterTypeModal';
 
 type MenuItem = {
@@ -40,6 +41,7 @@ const GlobalHeader = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [user, setUser] = useState<any>(null);
   const [userType, setUserType] = useState<string | null>(null);
+  const { wallet } = usePinkWallet(false, userType === 'companion');
 
   const hideHeaderRoutes = [
     '/admin-login', '/simple-admin',
@@ -116,11 +118,12 @@ const GlobalHeader = () => {
     { icon: Home, label: 'Início', path: '/', locked: false, requiresAuth: false },
     { icon: Search, label: 'Catálogo', path: '/catalog', locked: false, requiresAuth: false },
     { icon: MessageSquare, label: 'Mensagens', path: '/mensagens', locked: false, requiresAuth: true },
-    { icon: Wallet, label: 'Carteira', path: '/wallet', locked: true, requiresAuth: true },
+    { icon: Wallet, label: 'Carteira', path: '/wallet', locked: false, requiresAuth: true },
     ...(isCompanion
       ? [{ icon: TrendingUp, label: 'Subidas', path: '/subidas', locked: false, requiresAuth: true }]
       : []),
-    { icon: Award, label: 'PinkPoints', path: '/pinkpoints', locked: true, requiresAuth: true },
+    { icon: Award, label: 'PinkPoints', path: '/pinkpoints', locked: false, requiresAuth: true },
+    { icon: Gift, label: 'Estante de Recompensas', path: '/rewards', locked: false, requiresAuth: true },
     { icon: Gift, label: 'Indique e Ganhe', path: '/indique-ganhe', locked: true, requiresAuth: true },
   ];
 
@@ -193,11 +196,15 @@ const GlobalHeader = () => {
             <div className="flex items-center gap-1 sm:gap-2 md:gap-3">
               {/* PinkCoins Badge - code.html style */}
               <div 
-                onClick={() => navigate('/pinkpoints')}
+                onClick={() => navigateWithAuth('/wallet', true)}
                 className="group flex h-8 w-8 cursor-pointer items-center justify-center gap-2 rounded-xl bg-gray-100 px-0 transition-colors hover:bg-gray-200 min-[380px]:h-9 min-[380px]:w-9 sm:h-10 sm:w-auto sm:justify-start sm:px-3"
               >
                 <CircleDollarSign className="h-5 w-5 text-[#da0b7d] group-hover:scale-110 transition-transform flex-shrink-0" />
-                <span className="hidden text-sm font-bold text-gray-900 sm:inline">PinkCoins : 3.000</span>
+                {isCompanion && (
+                  <span className="hidden text-sm font-bold text-gray-900 sm:inline">
+                    PinkCoins: {(wallet?.pinkcoins_balance ?? 0).toLocaleString('pt-BR')}
+                  </span>
+                )}
               </div>
 
               <button

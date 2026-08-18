@@ -2,7 +2,7 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders } from '../_shared/cors.ts';
 
-type TransactionType = 'rositas' | 'boost' | 'story' | 'secure_payment';
+type TransactionType = 'rositas' | 'pinkcoins' | 'boost' | 'story' | 'secure_payment';
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -122,16 +122,26 @@ async function processPaymentStatus(
     .update(updateData)
     .eq('id', transaction.id);
 
+  // Replaying a confirmation is safe and also repairs a transient failure
+  // that happened after the payment status was persisted.
+  if (transaction.transaction_type === 'pinkcoins' && nextStatus === 'CONFIRMED') {
+    const { error } = await supabase.rpc('credit_pinkcoins_from_payment', {
+      p_payment_transaction_id: transaction.id,
+    });
+    if (error) throw error;
+    return;
+  }
+
+  if (transaction.transaction_type === 'rositas' && nextStatus === 'CONFIRMED') {
+    await processRositasPayment(supabase, transaction);
+    return;
+  }
+
   if (!isFirstConfirmation) {
     if (transaction.transaction_type === 'secure_payment') {
       await syncSecurePaymentFailure(supabase, transaction.reference_id, nextStatus);
     }
 
-    return;
-  }
-
-  if (transaction.transaction_type === 'rositas') {
-    await processRositasPayment(supabase, transaction);
     return;
   }
 

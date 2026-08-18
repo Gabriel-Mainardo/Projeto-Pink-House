@@ -9,6 +9,7 @@ import { CadastroPendenteDetailsModal } from '../components/CadastroPendenteDeta
 import ImageUpload from '../components/ImageUpload';
 import AdminChat from '../components/AdminChat';
 import AdminBoosts from '../components/AdminBoosts';
+import AdminEconomy from '../components/AdminEconomy';
 import { getVerificationQueue, reviewVerificationStep, type VerificationQueueItem } from '../services/verificationService';
 
 // Administração com dados reais do Supabase
@@ -746,7 +747,7 @@ const AdminDashboard = () => {
         <div className="mt-8">
         {/* Navegação por abas - Responsiva */}
         <div className="bg-white border border-gray-200 rounded-xl shadow-lg">
-          <div className="flex border-b border-gray-200">
+          <div className="flex overflow-x-auto border-b border-gray-200">
             <button
               onClick={() => setActiveTab('acompanhantes')}
               className={`flex-1 px-3 sm:px-6 py-3 sm:py-4 text-center transition-colors text-sm sm:text-base ${
@@ -832,6 +833,16 @@ const AdminDashboard = () => {
             >
               <span className="block sm:inline">Mensagens</span>
               <MessageSquare className="w-4 h-4 inline ml-1" />
+            </button>
+            <button
+              onClick={() => setActiveTab('economia')}
+              className={`flex-1 shrink-0 px-3 sm:px-6 py-3 sm:py-4 text-center transition-colors text-sm sm:text-base ${
+                activeTab === 'economia'
+                  ? 'bg-velvet-pink-600 text-white'
+                  : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+              }`}
+            >
+              <span className="block sm:inline">Economia</span>
             </button>
           </div>
 
@@ -1286,6 +1297,10 @@ const AdminDashboard = () => {
 
                 {activeTab === 'mensagens' && (
                   <AdminChat />
+                )}
+
+                {activeTab === 'economia' && (
+                  <AdminEconomy />
                 )}
                         </div>
                       </div>

@@ -9,7 +9,7 @@ import {
   getPaymentStatus,
 } from '../_shared/asaas.ts';
 
-type TransactionType = 'rositas' | 'boost' | 'story' | 'secure_payment';
+type TransactionType = 'rositas' | 'pinkcoins' | 'boost' | 'story' | 'secure_payment';
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -65,10 +65,40 @@ serve(async (req) => {
         creditCardHolderInfo?: Record<string, unknown>;
       };
 
-      if (!customerCpf || !customerName || !value || !billingType || !transactionType || !referenceId) {
+      if (!customerCpf || !customerName || !billingType || !transactionType || !referenceId) {
         throw new Error(
-          'Campos obrigatorios: customerName, customerCpf, value, billingType, transactionType e referenceId'
+          'Campos obrigatorios: customerName, customerCpf, billingType, transactionType e referenceId'
         );
+      }
+
+      let resolvedValue = Number(value);
+      let resolvedDescription = description || 'Pagamento PinkHouse';
+      let paymentMetadata: Record<string, unknown> = {};
+
+      if (transactionType === 'pinkcoins') {
+        const { data: pinkcoinPackage, error: packageError } = await supabase
+          .from('pinkcoin_packages')
+          .select('id, code, name, coins_amount, price_brl, active')
+          .eq('code', referenceId)
+          .eq('active', true)
+          .maybeSingle();
+
+        if (packageError || !pinkcoinPackage) {
+          throw new Error('PINKCOIN_PACKAGE_NOT_FOUND');
+        }
+
+        resolvedValue = Number(pinkcoinPackage.price_brl);
+        resolvedDescription = `Compra de ${pinkcoinPackage.coins_amount} PinkCoins - ${pinkcoinPackage.name}`;
+        paymentMetadata = {
+          package_id: pinkcoinPackage.id,
+          package_code: pinkcoinPackage.code,
+          coins_amount: Number(pinkcoinPackage.coins_amount),
+          price_brl: resolvedValue,
+        };
+      }
+
+      if (!Number.isFinite(resolvedValue) || resolvedValue <= 0) {
+        throw new Error('INVALID_PAYMENT_AMOUNT');
       }
 
       const customerId = await findOrCreateCustomer({
@@ -85,8 +115,8 @@ serve(async (req) => {
       if (billingType === 'PIX') {
         paymentResult = await createPixPayment(
           customerId,
-          value,
-          description || 'Pagamento Faixa Rosa',
+          resolvedValue,
+          resolvedDescription,
           externalReference
         );
       } else if (billingType === 'CREDIT_CARD') {
@@ -96,8 +126,8 @@ serve(async (req) => {
 
         paymentResult = await createCreditCardPayment(
           customerId,
-          value,
-          description || 'Pagamento Faixa Rosa',
+          resolvedValue,
+          resolvedDescription,
           creditCard as any,
           creditCardHolderInfo as any,
           externalReference
@@ -105,8 +135,8 @@ serve(async (req) => {
       } else if (billingType === 'BOLETO') {
         paymentResult = await createBoletoPayment(
           customerId,
-          value,
-          description || 'Pagamento Faixa Rosa',
+          resolvedValue,
+          resolvedDescription,
           externalReference
         );
       } else {
@@ -122,11 +152,12 @@ serve(async (req) => {
             asaas_customer_id: customerId,
             transaction_type: transactionType,
             reference_id: referenceId,
-            amount: value,
+            amount: resolvedValue,
             billing_type: billingType,
             status: billingType === 'CREDIT_CARD' ? paymentResult.status : 'PENDING',
             external_reference: externalReference,
-            description: description,
+            description: resolvedDescription,
+            metadata: paymentMetadata,
             updated_at: new Date().toISOString(),
           },
           { onConflict: 'asaas_payment_id' }
@@ -134,6 +165,7 @@ serve(async (req) => {
 
       if (insertError) {
         console.error('Erro ao salvar transacao:', insertError);
+        throw new Error('PAYMENT_TRANSACTION_PERSISTENCE_FAILED');
       }
 
       if (billingType === 'CREDIT_CARD' && paymentResult.status === 'CONFIRMED') {
@@ -271,6 +303,27 @@ async function processPaymentStatus(
     .update(updateData)
     .eq('id', transaction.id);
 
+  // The ledger RPC is idempotent. Retrying it on every confirmed observation
+  // recovers from a prior status update followed by a transient credit failure.
+  if (
+    transaction.transaction_type === 'pinkcoins' &&
+    (nextStatus === 'CONFIRMED' || nextStatus === 'RECEIVED')
+  ) {
+    const { error } = await supabase.rpc('credit_pinkcoins_from_payment', {
+      p_payment_transaction_id: transaction.id,
+    });
+    if (error) throw error;
+    return;
+  }
+
+  if (
+    transaction.transaction_type === 'rositas' &&
+    (nextStatus === 'CONFIRMED' || nextStatus === 'RECEIVED')
+  ) {
+    await processRositasPayment(supabase, transaction);
+    return;
+  }
+
   if (!isFirstConfirmation) {
     if (transaction.transaction_type === 'secure_payment' && (nextStatus === 'FAILED' || nextStatus === 'OVERDUE')) {
       await supabase
@@ -282,11 +335,6 @@ async function processPaymentStatus(
         .eq('conversation_id', transaction.reference_id);
     }
 
-    return;
-  }
-
-  if (transaction.transaction_type === 'rositas') {
-    await processRositasPayment(supabase, transaction);
     return;
   }
 

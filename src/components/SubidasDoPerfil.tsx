@@ -7,14 +7,15 @@ type Plano = {
   titulo: string;
   resumo: string;
   badge: string;
-  priceRositas?: number;
+  pinkcoinCost?: number;
+  resourceCode?: string;
   priceLocal?: string;
   destaque?: boolean;
   dbData?: any;
 };
 
 type Props = {
-  saldoRositas?: number;
+  pinkcoinsBalance?: number;
   onCarregar?: () => void;
   onSubir?: (plano: Plano, mode: 'gravar' | 'galeria') => void;
   onCancelar?: () => void;
@@ -25,7 +26,7 @@ type Props = {
 };
 
 export default function SubidasDoPerfil({
-  saldoRositas = 0,
+  pinkcoinsBalance = 0,
   onCarregar,
   onSubir,
   onCancelar,
@@ -50,8 +51,9 @@ export default function SubidasDoPerfil({
   }, [planos, defaultPlanoId]);
 
   const planoAtivo = planos.find((p) => p.id === selecionado) || planos[0];
-  const custo = planoAtivo?.priceRositas || 0;
-  const saldoFinal = saldoRositas - custo;
+  const custo = planoAtivo?.pinkcoinCost || 0;
+  const isPaidWithPinkcoins = Boolean(planoAtivo?.resourceCode);
+  const saldoFinal = pinkcoinsBalance - custo;
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
@@ -103,16 +105,17 @@ export default function SubidasDoPerfil({
             <div className="text-right">
               <p className="text-[10px] text-gray-400 uppercase tracking-wider">Custo</p>
               <p className="text-base font-bold text-[#d91d83]">
-                {custo > 0 ? `${custo}` : '0'} <span className="text-sm font-medium text-gray-500">Rositas</span>
+                {isPaidWithPinkcoins ? custo : 'Gratis'}{' '}
+                {isPaidWithPinkcoins && <span className="text-sm font-medium text-gray-500">PinkCoins</span>}
               </p>
             </div>
           </div>
 
           {/* Saldo */}
-          <div className="bg-white rounded-xl p-3.5 flex items-center justify-between border border-gray-100">
+          {isPaidWithPinkcoins && <div className="bg-white rounded-xl p-3.5 flex items-center justify-between border border-gray-100">
             <div>
               <p className="text-[9px] text-gray-400 uppercase tracking-wider mb-0.5">Saldo Atual</p>
-              <p className="text-lg font-bold text-gray-900">{saldoRositas}</p>
+              <p className="text-lg font-bold text-gray-900">{pinkcoinsBalance}</p>
             </div>
             <div className="text-gray-300 text-lg">&rarr;</div>
             <div className="text-right">
@@ -121,7 +124,7 @@ export default function SubidasDoPerfil({
                 {saldoFinal}
               </p>
             </div>
-          </div>
+          </div>}
 
           <p className="text-xs text-gray-400 text-center mt-3">
             Seu perfil subira no topo da sua cidade.

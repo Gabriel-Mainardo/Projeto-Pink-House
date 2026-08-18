@@ -1,7 +1,7 @@
 import { supabase } from '../lib/supabase';
 
 export type BillingType = 'PIX' | 'CREDIT_CARD' | 'BOLETO';
-export type TransactionType = 'rositas' | 'boost' | 'story' | 'secure_payment';
+export type TransactionType = 'rositas' | 'pinkcoins' | 'boost' | 'story' | 'secure_payment';
 export type TransactionStatus =
   | 'PENDING'
   | 'CONFIRMED'

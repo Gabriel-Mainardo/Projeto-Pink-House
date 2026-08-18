@@ -7,6 +7,7 @@ import { EditAcompanhanteModal } from '../components/EditAcompanhanteModal';
 import ProfileMediaManager from '../components/ProfileMediaManager';
 import { getReliabilityScore } from '../services/verificationService';
 import { useToast } from '../hooks/use-toast';
+import { usePinkWallet } from '../hooks/usePinkWallet';
 import {
   Bell,
   CheckCircle,
@@ -335,6 +336,7 @@ const CompanionDashboard: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
+  const { wallet } = usePinkWallet();
   const [userName, setUserName] = useState('Usuario');
   const [userAge, setUserAge] = useState(25);
   const [userLocation, setUserLocation] = useState('');
@@ -680,10 +682,6 @@ const CompanionDashboard: React.FC = () => {
   };
 
   const stats = useMemo(() => {
-    const pinkPointsValue =
-      localStorage.getItem('pinkPoints') ||
-      localStorage.getItem('pinkpoints') ||
-      (reliability ? String(reliability * 25) : '0');
     const rositasValue = localStorage.getItem('rositasBalance') || localStorage.getItem('rositas') || '0';
     const ratingValue =
       companionProfile?.rating && Number(companionProfile.rating) > 0
@@ -693,12 +691,13 @@ const CompanionDashboard: React.FC = () => {
       reliability > 0 ? `#${Math.max(1, 101 - Math.min(reliability, 100))}` : '--';
 
     return {
-      pinkPoints: pinkPointsValue,
+      pinkPoints: (wallet?.pinkpoints_balance || 0).toLocaleString('pt-BR'),
+      pinkcoins: (wallet?.pinkcoins_balance || 0).toLocaleString('pt-BR'),
       rositas: rositasValue,
       rating: ratingValue,
       ranking: rankingValue
     };
-  }, [companionProfile?.rating, reliability]);
+  }, [companionProfile?.rating, reliability, wallet?.pinkcoins_balance, wallet?.pinkpoints_balance]);
 
   const profileCompleteness = useMemo(() => {
     if (!companionProfile) {
@@ -1162,7 +1161,7 @@ const CompanionDashboard: React.FC = () => {
 
       <section className="rounded-3xl bg-white p-6 shadow-sm">
         <h3 className="mb-6 text-lg font-semibold text-gray-800">Estatisticas da conta</h3>
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-6">
           <StatCard
             icon={<Star size={24} className="fill-yellow-400 text-yellow-400" />}
             value={stats.pinkPoints}
@@ -1186,6 +1185,13 @@ const CompanionDashboard: React.FC = () => {
             value={stats.ranking}
             label="Ranking"
             helper="Estimado pela confiabilidade"
+          />
+          <StatCard
+            icon={<Coins size={24} className="fill-[#d91d83] text-[#d91d83]" />}
+            value={stats.pinkcoins}
+            label="PinkCoins"
+            button
+            onButtonClick={() => navigate('/wallet')}
           />
           <StatCard
             icon={<Coins size={24} className="fill-[#d91d83] text-[#d91d83]" />}
