@@ -14,6 +14,8 @@ const ClientSignup = () => {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [signupNotice, setSignupNotice] = useState('');
+  const [isResending, setIsResending] = useState(false);
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
@@ -69,9 +71,30 @@ const ClientSignup = () => {
     return email.includes('@') && email.split('@')[1]?.length > 0;
   };
 
+  const emailRedirectTo = `${window.location.origin}/auth/callback?signup=client`;
+
+  const resendConfirmation = async () => {
+    setError('');
+    setIsResending(true);
+    try {
+      const { error: resendError } = await supabase.auth.resend({
+        type: 'signup',
+        email: formData.email,
+        options: { emailRedirectTo },
+      });
+      if (resendError) throw resendError;
+      setSignupNotice('Enviamos um novo link. Confira seu e-mail para continuar o cadastro.');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Não foi possível reenviar o link de confirmação.');
+    } finally {
+      setIsResending(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setSignupNotice('');
 
     if (!acceptTerms) {
       setError('Você deve aceitar os termos de uso para prosseguir');
@@ -96,12 +119,13 @@ const ClientSignup = () => {
     setIsLoading(true);
 
     try {
+      localStorage.removeItem('isLogin');
       // PRIMEIRO: Verificar se email já existe como acompanhante
       const { data: existingCompanion } = await supabase
         .from('acompanhantes')
         .select('email')
         .eq('email', formData.email)
-        .single();
+        .maybeSingle();
 
       if (existingCompanion) {
         throw new Error('Este email já está cadastrado como acompanhante. Use outro email ou faça login como acompanhante.');
@@ -114,6 +138,7 @@ const ClientSignup = () => {
         email: formData.email,
         password: formData.password,
         options: {
+          emailRedirectTo,
           data: {
             user_type: 'client',
             username: formData.username,
@@ -130,6 +155,10 @@ const ClientSignup = () => {
             password: formData.password,
           });
 
+          if (signInError?.message === 'Email not confirmed') {
+            setSignupNotice('Confirme seu e-mail antes de continuar o cadastro.');
+            return;
+          }
           if (signInError) {
             throw new Error('Este email já está cadastrado. Faça login com sua senha.');
           }
@@ -140,13 +169,11 @@ const ClientSignup = () => {
       } else {
         authUser = data?.user;
 
-        // Se signup não criou sessão, fazer login
+        // A confirmação de e-mail ainda não criou sessão para acessar o banco.
         if (!data?.session && authUser) {
-          const { data: signInData } = await supabase.auth.signInWithPassword({
-            email: formData.email,
-            password: formData.password,
-          });
-          if (signInData?.user) authUser = signInData.user;
+          localStorage.setItem('pendingUserType', 'client');
+          setSignupNotice('Enviamos um link de confirmação. Abra seu e-mail para continuar o cadastro.');
+          return;
         }
       }
 
@@ -161,7 +188,7 @@ const ClientSignup = () => {
           .from('clientes')
           .select('id')
           .eq('id', data.user.id)
-          .single();
+          .maybeSingle();
 
         if (!existingClient) {
           // Criar registro na tabela de clientes apenas se não existir
@@ -175,6 +202,7 @@ const ClientSignup = () => {
             .from('clientes')
             .insert({
               id: data.user.id,
+              user_id: data.user.id,
               email: formData.email,
               name: formData.username
             })
@@ -321,6 +349,16 @@ const ClientSignup = () => {
           {error && (
             <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-2.5 rounded-xl text-sm">
               {error}
+            </div>
+          )}
+
+          {signupNotice && (
+            <div className="mb-4 bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-xl text-sm" role="status">
+              <p>{signupNotice}</p>
+              <button type="button" onClick={resendConfirmation} disabled={isResending} className="mt-2 font-semibold underline disabled:opacity-50">
+                {isResending ? 'Reenviando...' : 'Reenviar link de confirmação'}
+              </button>
+              <Link to="/login" className="ml-4 font-semibold underline">Já confirmei, entrar</Link>
             </div>
           )}
 

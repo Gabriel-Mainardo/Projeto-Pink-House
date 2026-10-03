@@ -145,23 +145,12 @@ export default function LocationRegister() {
         throw new Error('Dados de cadastro incompletos. Por favor, comece o cadastro novamente.');
       }
 
-      // Sessão é opcional aqui: se "Confirm email" estiver ativo no Supabase,
-      // a usuária ainda não tem sessão (precisa clicar no link do email).
-      // Continuamos com o userId do tempAuthData — a RLS das tabelas relevantes
-      // deve permitir o insert/update durante o cadastro.
-      const { data: { session } } = await supabase.auth.getSession();
-      console.log('🔐 Sessão do Supabase (opcional):', session);
-
-      // Se tiver uma sessão de OUTRO usuário (ex: cliente logado antes), limpar
-      // para evitar confusão de identidades. NÃO bloqueia o cadastro —
-      // tempAuthData é a fonte de verdade durante o wizard de cadastro.
-      if (session && session.user.id !== authData.userId) {
-        console.warn('⚠️ Sessão ativa pertence a outro userId. Deslogando para usar tempAuthData.');
-        try {
-          await supabase.auth.signOut();
-        } catch (signOutErr) {
-          console.warn('Falha ao fazer signOut da sessão antiga:', signOutErr);
-        }
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !session) {
+        throw new Error('Confirme seu e-mail e entre na conta antes de salvar o perfil. Seus dados preenchidos neste navegador foram preservados.');
+      }
+      if (session.user.id !== authData.userId) {
+        throw new Error('A sessão atual pertence a outra conta. Entre com o e-mail usado neste cadastro para continuar.');
       }
 
       // Email NÃO é verificado no momento do cadastro — a verificação ocorre

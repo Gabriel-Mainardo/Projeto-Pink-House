@@ -8,11 +8,17 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'demo-key';
 // O flow PKCE exige code_verifier no localStorage do mesmo browser — falha se
 // o link for aberto em outro dispositivo/browser. O implicit flow embute o token
 // no hash da URL e funciona universalmente.
-const supabaseImplicit = createClient(
-  supabaseUrl,
-  supabaseAnonKey,
-  { auth: { flowType: 'implicit', persistSession: false } }
-);
+let supabaseImplicit: ReturnType<typeof createClient> | null = null;
+const getSupabaseImplicit = () => {
+  if (!supabaseImplicit) {
+    supabaseImplicit = createClient(
+      supabaseUrl,
+      supabaseAnonKey,
+      { auth: { flowType: 'implicit', persistSession: false, storageKey: 'pinkhouse-email-verification' } }
+    );
+  }
+  return supabaseImplicit;
+};
 
 export interface VerificationData {
   id?: string;
@@ -841,7 +847,7 @@ export async function sendEmailMagicLink(
     redirectUrl.searchParams.set('source', 'email_verification');
     redirectUrl.searchParams.set('companion_id', companionId);
 
-    const { error } = await supabaseImplicit.auth.signInWithOtp({
+    const { error } = await getSupabaseImplicit().auth.signInWithOtp({
       email,
       options: {
         shouldCreateUser: false,

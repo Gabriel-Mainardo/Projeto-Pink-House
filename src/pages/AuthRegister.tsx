@@ -18,6 +18,28 @@ export default function AuthRegister() {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [signupNotice, setSignupNotice] = useState('');
+  const [isResending, setIsResending] = useState(false);
+
+  const emailRedirectTo = `${window.location.origin}/auth/callback?signup=${userType}`;
+
+  const resendConfirmation = async () => {
+    setError('');
+    setIsResending(true);
+    try {
+      const { error: resendError } = await supabase.auth.resend({
+        type: 'signup',
+        email: formData.email,
+        options: { emailRedirectTo },
+      });
+      if (resendError) throw resendError;
+      setSignupNotice('Enviamos um novo link. Confira seu e-mail para continuar o cadastro.');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Não foi possível reenviar o link de confirmação.');
+    } finally {
+      setIsResending(false);
+    }
+  };
 
   useEffect(() => {
     if (requestedUserType === 'client') {
@@ -77,6 +99,7 @@ export default function AuthRegister() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setSignupNotice('');
 
     // Validações
     if (!formData.email || !formData.password) {
@@ -97,6 +120,7 @@ export default function AuthRegister() {
     setIsLoading(true);
 
     try {
+      localStorage.removeItem('isLogin');
       // PRIMEIRO: Verificar se email já existe em outra categoria
       if (userType === 'companion') {
         // Se está cadastrando como acompanhante, verificar se já é cliente
@@ -104,7 +128,7 @@ export default function AuthRegister() {
           .from('clientes')
           .select('email')
           .eq('email', formData.email)
-          .single();
+          .maybeSingle();
 
         if (existingClient) {
           throw new Error('Este email já está cadastrado como cliente. Use outro email ou faça login como cliente.');
@@ -115,7 +139,7 @@ export default function AuthRegister() {
           .from('acompanhantes')
           .select('email')
           .eq('email', formData.email)
-          .single();
+          .maybeSingle();
 
         if (existingCompanion) {
           throw new Error('Este email já está cadastrado como acompanhante. Use outro email ou faça login como acompanhante.');
@@ -129,7 +153,7 @@ export default function AuthRegister() {
         email: formData.email,
         password: formData.password,
         options: {
-          emailRedirectTo: undefined,
+          emailRedirectTo,
           data: {
             user_type: userType,
           },
@@ -145,6 +169,10 @@ export default function AuthRegister() {
             password: formData.password,
           });
 
+          if (signInError?.message === 'Email not confirmed') {
+            setSignupNotice('Confirme seu e-mail antes de continuar o cadastro.');
+            return;
+          }
           if (signInError) {
             throw new Error('Este email já está cadastrado. Faça login com sua senha.');
           }
@@ -157,20 +185,11 @@ export default function AuthRegister() {
       } else {
         authUser = data?.user;
 
-        // Se signup não criou sessão (ex: email confirmation ativo), tentar login
+        // Sem sessão não há permissão para gravar o perfil. Aguarde a confirmação.
         if (!data?.session) {
-          const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-            email: formData.email,
-            password: formData.password,
-          });
-
-          if (signInError) {
-            // Se falhar auto-login, continuar sem sessão — o user ID do signup é suficiente
-            // para prosseguir com o cadastro
-            console.warn('⚠️ Auto-login falhou após signup, continuando com dados do signup:', signInError.message);
-          } else {
-            authUser = signInData.user;
-          }
+          localStorage.setItem('pendingUserType', userType);
+          setSignupNotice('Enviamos um link de confirmação. Abra seu e-mail para continuar o cadastro.');
+          return;
         }
       }
 
@@ -331,6 +350,18 @@ export default function AuthRegister() {
               <p className="text-red-600 text-sm" style={{ fontFamily: "'Inter', sans-serif" }}>
                 {error}
               </p>
+            </div>
+          )}
+
+          {signupNotice && (
+            <div className="mb-5 p-4 bg-green-50 border border-green-200 rounded-2xl" role="status">
+              <p className="text-green-800 text-sm">{signupNotice}</p>
+              <button type="button" onClick={resendConfirmation} disabled={isResending} className="mt-2 text-sm font-semibold text-green-800 underline disabled:opacity-50">
+                {isResending ? 'Reenviando...' : 'Reenviar link de confirmação'}
+              </button>
+              <button type="button" onClick={() => navigate('/login')} className="ml-4 text-sm font-semibold text-green-800 underline">
+                Já confirmei, entrar
+              </button>
             </div>
           )}
 

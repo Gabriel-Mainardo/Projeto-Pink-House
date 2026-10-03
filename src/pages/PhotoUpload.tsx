@@ -71,15 +71,6 @@ const PhotoUpload = () => {
         throw new Error('Por favor, adicione uma foto');
       }
 
-      // Upload real ao Supabase Storage
-      const publicUrl = await uploadProfilePhoto(selectedFileRef.current);
-
-      // Salvar URL pública no registration data (backup)
-      registrationService.saveData({
-        profilePhoto: publicUrl
-      });
-
-      // PERSISTIR a foto no banco de dados (tabela acompanhantes)
       const cId = companionId || (() => {
         try {
           const u = JSON.parse(localStorage.getItem('user') || '{}');
@@ -87,26 +78,45 @@ const PhotoUpload = () => {
         } catch { return ''; }
       })();
 
-      if (cId) {
-        const { error: updateError } = await supabase
-          .from('acompanhantes')
-          .update({
-            image: publicUrl,
-            gallery: [publicUrl],
-          })
-          .eq('id', cId);
-
-        if (updateError) {
-          console.error('Erro ao atualizar foto no perfil:', updateError);
-        }
-
-        // Atualizar localStorage do user com a foto
-        try {
-          const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
-          storedUser.image = publicUrl;
-          localStorage.setItem('user', JSON.stringify(storedUser));
-        } catch { /* noop */ }
+      if (!cId) {
+        throw new Error('Perfil não encontrado. Volte ao cadastro e tente novamente.');
       }
+
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !session) {
+        throw new Error('Confirme seu e-mail e entre na conta antes de enviar a foto.');
+      }
+
+      const { data: profile, error: profileError } = await supabase
+        .from('acompanhantes')
+        .select('auth_user_id')
+        .eq('id', cId)
+        .single();
+      if (profileError || profile?.auth_user_id !== session.user.id) {
+        throw new Error('Este perfil não pertence à conta conectada. Entre com o e-mail usado no cadastro.');
+      }
+
+      // Só enviar o arquivo depois de confirmar que a conta pode atualizar o perfil.
+      const publicUrl = await uploadProfilePhoto(selectedFileRef.current);
+
+      const { error: updateError } = await supabase
+        .from('acompanhantes')
+        .update({
+          image: publicUrl,
+          gallery: [publicUrl],
+        })
+        .eq('id', cId);
+
+      if (updateError) throw updateError;
+
+      registrationService.saveData({ profilePhoto: publicUrl });
+
+      // Atualizar localStorage do user com a foto
+      try {
+        const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+        storedUser.image = publicUrl;
+        localStorage.setItem('user', JSON.stringify(storedUser));
+      } catch { /* noop */ }
 
       const params = new URLSearchParams({
         companionId: cId || companionId,

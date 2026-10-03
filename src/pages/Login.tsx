@@ -80,7 +80,7 @@ const Login = () => {
         // Verificar se é acompanhante (buscar por auth_user_id primeiro, fallback por email)
         const { data: acompanhantesById } = await supabase
           .from('acompanhantes')
-          .select('id, name, location, auth_user_id')
+          .select('id, name, location, auth_user_id, image, created_at')
           .eq('auth_user_id', data.user.id)
           .order('updated_at', { ascending: false })
           .order('created_at', { ascending: false })
@@ -91,7 +91,7 @@ const Login = () => {
           // Busca case-insensitive por email
           const { data: acompanhantesByEmail } = await supabase
             .from('acompanhantes')
-            .select('id, name, location, auth_user_id')
+            .select('id, name, location, auth_user_id, image, created_at')
             .ilike('email', data.user.email)
             .order('updated_at', { ascending: false })
             .order('created_at', { ascending: false })
@@ -130,7 +130,11 @@ const Login = () => {
             isLoggedIn: true,
             companionId: acompanhante.id
           }));
-          navigate('/companion-dashboard');
+          const incompleteNewRegistration = acompanhante.image === '/default-profile.png'
+            && Date.parse(acompanhante.created_at) >= Date.parse('2026-09-27T00:00:00Z');
+          navigate(incompleteNewRegistration
+            ? `/photo-upload?companionId=${acompanhante.id}`
+            : '/companion-dashboard');
         } else if (cliente) {
           // Verificar se também tem cadastro pendente como acompanhante
           // Se sim, priorizar acompanhante
@@ -184,9 +188,48 @@ const Login = () => {
             }));
             navigate('/register-success');
           } else {
-            // Usuário existe no Auth mas não tem perfil em nenhuma tabela.
-            // NÃO auto-criar como cliente — acompanhantes estavam sendo
-            // classificadas erroneamente. Mandar pra escolher tipo de conta.
+            // O e-mail pode ter sido confirmado antes de concluir o formulário.
+            // Retome o tipo de cadastro registrado no Auth, sem classificar
+            // uma acompanhante como cliente.
+            if (data.user.user_metadata?.user_type === 'companion') {
+              let savedRegistration: { userId: string; email: string; userType: 'companion'; artisticName?: string; phone?: string; age?: string } | null = null;
+              try {
+                savedRegistration = JSON.parse(localStorage.getItem('tempAuthData') || 'null');
+              } catch {
+                // Recomeçar somente os dados temporários inválidos.
+              }
+              const tempData = savedRegistration?.userId === data.user.id
+                ? savedRegistration
+                : { userId: data.user.id, email: data.user.email, userType: 'companion' };
+              localStorage.setItem('tempAuthData', JSON.stringify(tempData));
+              navigate(tempData.artisticName && tempData.phone && tempData.age
+                ? '/location-register'
+                : '/basic-info-register');
+              return;
+            }
+
+            if (data.user.user_metadata?.user_type === 'client' && data.user.email) {
+              const name = data.user.user_metadata.username || data.user.email.split('@')[0];
+              const { data: newClient, error: createError } = await supabase
+                .from('clientes')
+                .insert({ id: data.user.id, user_id: data.user.id, email: data.user.email, name })
+                .select('id, name')
+                .single();
+              if (createError) throw createError;
+              localStorage.setItem('user', JSON.stringify({
+                id: data.user.id,
+                user_id: data.user.id,
+                email: data.user.email,
+                name: newClient.name,
+                type: 'client',
+                isLoggedIn: true,
+                clientId: newClient.id,
+              }));
+              navigate('/client-dashboard');
+              return;
+            }
+
+            // Contas antigas sem tipo de cadastro precisam escolhê-lo de novo.
             await supabase.auth.signOut();
             setError('Conta sem perfil. Refaça o cadastro escolhendo o tipo de conta.');
             setTimeout(() => navigate('/auth-register'), 1500);

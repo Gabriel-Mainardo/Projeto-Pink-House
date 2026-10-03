@@ -8,17 +8,24 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://demo.supabase.
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'demo-key';
 
 const EMAIL_CONFIRM_TYPES = ['signup', 'email', 'magiclink', 'email_change', 'recovery'];
-const supabaseImplicitCallback = createClient(
-  supabaseUrl,
-  supabaseAnonKey,
-  {
-    auth: {
-      flowType: 'implicit',
-      persistSession: false,
-      detectSessionInUrl: true,
-    },
+let supabaseImplicitCallback: ReturnType<typeof createClient> | null = null;
+const getSupabaseImplicitCallback = () => {
+  if (!supabaseImplicitCallback) {
+    supabaseImplicitCallback = createClient(
+      supabaseUrl,
+      supabaseAnonKey,
+      {
+        auth: {
+          flowType: 'implicit',
+          persistSession: false,
+          detectSessionInUrl: true,
+          storageKey: 'pinkhouse-email-callback',
+        },
+      }
+    );
   }
-);
+  return supabaseImplicitCallback;
+};
 
 export default function AuthCallback() {
   const navigate = useNavigate();
@@ -52,7 +59,7 @@ export default function AuthCallback() {
   const fetchLatestCompanion = async (field: 'id' | 'auth_user_id' | 'email', value: string) => {
     const { data, error } = await supabase
       .from('acompanhantes')
-      .select('id, name, location, auth_user_id, email')
+      .select('id, name, location, auth_user_id, email, image, created_at')
       .eq(field, value)
       .order('updated_at', { ascending: false })
       .order('created_at', { ascending: false })
@@ -89,7 +96,7 @@ export default function AuthCallback() {
 
     if (tokenHash && type) {
       console.log('AuthCallback: callback OTP detectado, verificando token_hash no cliente implicit.');
-      const { data, error } = await supabaseImplicitCallback.auth.verifyOtp({
+      const { data, error } = await getSupabaseImplicitCallback().auth.verifyOtp({
         token_hash: tokenHash,
         type: type as EmailOtpType,
       });
@@ -122,7 +129,7 @@ export default function AuthCallback() {
 
     const {
       data: { session: implicitSession },
-    } = await supabaseImplicitCallback.auth.getSession();
+    } = await getSupabaseImplicitCallback().auth.getSession();
 
     if (implicitSession?.access_token && implicitSession?.refresh_token) {
       console.log('AuthCallback: sessao implicit detectada, sincronizando com cliente principal.');
@@ -207,6 +214,8 @@ export default function AuthCallback() {
         source === 'email_verification' ||
         EMAIL_CONFIRM_TYPES.includes(typeFromHash || '') ||
         EMAIL_CONFIRM_TYPES.includes(typeFromQuery || '');
+      const isSignupConfirmation =
+        searchParams.has('signup') || typeFromHash === 'signup' || typeFromQuery === 'signup';
 
       const {
         data: { session },
@@ -214,6 +223,10 @@ export default function AuthCallback() {
       const resolvedUser = session?.user ?? establishedUser;
 
       if (resolvedUser) {
+        if (isSignupConfirmation) {
+          await processUser(resolvedUser, true);
+          return;
+        }
         if (isEmailVerification) {
           await handleEmailVerificationCallback(resolvedUser);
           return;
@@ -225,10 +238,15 @@ export default function AuthCallback() {
 
       const {
         data: { session: implicitSession },
-      } = await supabaseImplicitCallback.auth.getSession();
+      } = await getSupabaseImplicitCallback().auth.getSession();
 
       if (implicitSession?.user) {
         await syncMainClientSession(implicitSession);
+
+        if (isSignupConfirmation) {
+          await processUser(implicitSession.user, true);
+          return;
+        }
 
         if (isEmailVerification) {
           await handleEmailVerificationCallback(implicitSession.user);
@@ -386,7 +404,7 @@ export default function AuthCallback() {
       console.log('Processando usuario:', user.email, '| emailConfirmedRecently:', emailConfirmedRecently);
 
       const isLoginFlow = localStorage.getItem('isLogin') === 'true';
-      const pendingUserType = localStorage.getItem('pendingUserType') || 'client';
+      const pendingUserType = user.user_metadata?.user_type || localStorage.getItem('pendingUserType') || 'client';
 
       let existingCompanion: any = await fetchLatestCompanion('auth_user_id', user.id);
       if (!existingCompanion) {
@@ -440,7 +458,11 @@ export default function AuthCallback() {
         if (emailConfirmedRecently) {
           localStorage.setItem('email_just_confirmed', '1');
         }
-        navigate('/companion-dashboard');
+        const incompleteNewRegistration = existingCompanion.image === '/default-profile.png'
+          && Date.parse(existingCompanion.created_at) >= Date.parse('2026-09-27T00:00:00Z');
+        navigate(incompleteNewRegistration
+          ? `/photo-upload?companionId=${existingCompanion.id}`
+          : '/companion-dashboard');
         return;
       }
 
@@ -505,6 +527,25 @@ export default function AuthCallback() {
         return;
       }
 
+      if (pendingUserType === 'companion' && !isLoginFlow) {
+        let savedRegistration: { userId: string; email: string; userType: 'companion'; artisticName?: string; phone?: string; age?: string } | null = null;
+        try {
+          savedRegistration = JSON.parse(localStorage.getItem('tempAuthData') || 'null');
+        } catch {
+          // Dados temporários inválidos não devem bloquear a retomada do cadastro.
+        }
+        const tempData = savedRegistration?.userId === user.id
+          ? savedRegistration
+          : { userId: user.id, email: user.email, userType: 'companion' };
+        localStorage.setItem('tempAuthData', JSON.stringify(tempData));
+        localStorage.removeItem('pendingUserType');
+        setStatus('E-mail confirmado! Continue seu cadastro.');
+        navigate(tempData.artisticName && tempData.phone && tempData.age
+          ? '/location-register'
+          : '/basic-info-register');
+        return;
+      }
+
       // Só auto-criar como cliente se o fluxo explícito de cadastro de cliente
       // marcou pendingUserType. NUNCA auto-criar em login (isLoginFlow), pois
       // acompanhantes que fazem login antes de ter linha em `acompanhantes`
@@ -514,8 +555,9 @@ export default function AuthCallback() {
           .from('clientes')
           .insert({
             id: user.id,
+            user_id: user.id,
             email: user.email,
-            name: user.user_metadata?.name || user.user_metadata?.full_name || user.email?.split('@')[0],
+            name: user.user_metadata?.username || user.user_metadata?.name || user.user_metadata?.full_name || user.email?.split('@')[0],
           })
           .select('id, name')
           .single();
