@@ -5,6 +5,7 @@ import * as messagesService from '../services/messagesService';
 import ProfileVerificationModal from '../components/ProfileVerificationModal';
 import { EditAcompanhanteModal } from '../components/EditAcompanhanteModal';
 import ProfileMediaManager from '../components/ProfileMediaManager';
+import DeleteAccountButton from '../components/DeleteAccountButton';
 import { getReliabilityScore } from '../services/verificationService';
 import { useToast } from '../hooks/use-toast';
 import { usePinkWallet } from '../hooks/usePinkWallet';
@@ -1215,6 +1216,7 @@ const CompanionDashboard: React.FC = () => {
           <LogOut size={20} />
           Sair da conta
         </button>
+        <DeleteAccountButton className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl border border-red-200 py-4 font-medium text-red-600 transition-colors hover:bg-red-50" />
       </section>
     </div>
   );

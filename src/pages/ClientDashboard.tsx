@@ -5,6 +5,7 @@ import * as messagesService from '../services/messagesService';
 import { supabase, type Client } from '../lib/supabase';
 import { Heart, User, MessageSquare, MessagesSquare, Search, Lock, ShieldCheck, MapPin, ChevronRight, Compass, Edit3, Phone, Mail } from 'lucide-react';
 import ClientProfileModal from '../components/ClientProfileModal';
+import DeleteAccountButton from '../components/DeleteAccountButton';
 
 interface RecentConversation {
   id: string;
@@ -136,10 +137,14 @@ const ClientDashboard = () => {
     loadRecentConversations();
   }, [currentUserId]);
 
-  const handleLogout = () => {
-    localStorage.removeItem('user');
-    window.dispatchEvent(new Event('userLogout'));
-    navigate('/');
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+    } finally {
+      localStorage.removeItem('user');
+      window.dispatchEvent(new Event('userLogout'));
+      navigate('/');
+    }
   };
 
   const handleClientSaved = (updatedClient: Client) => {
@@ -431,6 +436,7 @@ const ClientDashboard = () => {
           <span className="material-symbols-outlined text-[20px]">logout</span>
           Sair da conta
         </button>
+        <DeleteAccountButton className="mt-3 w-full rounded-2xl border border-red-500/30 py-4 text-sm font-semibold text-red-400 flex items-center justify-center gap-2 hover:bg-red-500/10" />
       </div>
     </div>
   );
@@ -490,6 +496,7 @@ const ClientDashboard = () => {
             <span className="material-symbols-outlined text-[22px]">logout</span>
             <span style={{ fontWeight: 500 }}>Sair da conta</span>
           </button>
+          <DeleteAccountButton className="w-full flex items-center gap-4 py-3 text-sm text-red-400 hover:text-red-300" />
         </div>
       </aside>
 
@@ -835,6 +842,7 @@ const ClientDashboard = () => {
                 <span className="material-symbols-outlined text-[20px]">logout</span>
                 Sair da conta
               </button>
+              <DeleteAccountButton className="w-full rounded-2xl border border-red-500/30 py-4 text-sm font-semibold text-red-400 flex items-center justify-center gap-2 hover:bg-red-500/10" />
             </section>
           </>
         ) : (
