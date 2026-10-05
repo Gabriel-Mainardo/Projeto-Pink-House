@@ -198,7 +198,7 @@ const Login = () => {
               } catch {
                 // Recomeçar somente os dados temporários inválidos.
               }
-              const tempData = savedRegistration?.userId === data.user.id
+              const tempData: NonNullable<typeof savedRegistration> = savedRegistration?.userId === data.user.id
                 ? savedRegistration
                 : { userId: data.user.id, email: data.user.email, userType: 'companion' };
               localStorage.setItem('tempAuthData', JSON.stringify(tempData));

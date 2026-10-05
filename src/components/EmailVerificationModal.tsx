@@ -224,8 +224,10 @@ export default function EmailVerificationModal({
                   )
                   : (
                     <>
-                      Enviaremos um link de verificacao para{' '}
+                      Ganhe 20 pontos de confiabilidade confirmando seu endereço. Enviaremos um link para{' '}
                       <strong className="text-gray-900">{userEmail}</strong>.
+                      <br /><br />
+                      Você pode continuar usando sua conta e concluir esta tarefa depois.
                     </>
                   )
               }

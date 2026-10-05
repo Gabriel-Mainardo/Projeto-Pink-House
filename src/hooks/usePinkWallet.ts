@@ -38,7 +38,8 @@ export const usePinkWallet = (includeActivity = false, enabled = true) => {
   useEffect(() => {
     void refresh();
     const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
-      void refresh();
+      // Não iniciar outras chamadas Auth dentro do lock do evento.
+      window.setTimeout(() => void refresh(), 0);
     });
     return () => subscription.unsubscribe();
   }, [refresh]);

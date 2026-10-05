@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Loader2, MapPin, Navigation } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { getOrCreateVerification } from '../services/verificationService';
 import { recifeNeighborhoods, recifeNeighborhoodsByRegion } from '../lib/recife-neighborhoods';
 
 export default function LocationRegister() {
@@ -147,19 +148,11 @@ export default function LocationRegister() {
 
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       if (sessionError || !session) {
-        throw new Error('Confirme seu e-mail e entre na conta antes de salvar o perfil. Seus dados preenchidos neste navegador foram preservados.');
+        throw new Error('Entre na conta antes de salvar o perfil. Seus dados preenchidos neste navegador foram preservados.');
       }
       if (session.user.id !== authData.userId) {
         throw new Error('A sessão atual pertence a outra conta. Entre com o e-mail usado neste cadastro para continuar.');
       }
-
-      // Email NÃO é verificado no momento do cadastro — a verificação ocorre
-      // apenas quando a acompanhante clica no link de magic link enviado
-      // explicitamente (handleEmailVerificationCallback em verificationService.ts).
-      // Não usar email_confirmed_at: com mailer_autoconfirm ativo, esse campo
-      // é auto-setado no signup para todos os usuários, não representa verificação real.
-      const isEmailVerified = false;
-      const initialReliabilityScore = 0;
 
       // Verificar se já existe um perfil com este auth_user_id ou email
       const { data: existingRows, error: existingError } = await supabase
@@ -240,66 +233,10 @@ export default function LocationRegister() {
         companionData = inserted;
       }
 
-      // Resetar/criar registro de verificação com tudo falso (novo cadastro)
-      const { data: existingVerificationRows, error: existingVerificationError } = await supabase
-        .from('companion_verifications')
-        .select('id')
-        .eq('companion_id', companionData.id)
-        .order('updated_at', { ascending: false })
-        .order('created_at', { ascending: false })
-        .limit(1);
-
-      if (existingVerificationError) {
-        throw new Error(`Erro ao buscar registro de verificacao: ${existingVerificationError.message}`);
-      }
-
-      const existingVerification = existingVerificationRows?.[0] || null;
-
-      if (existingVerification) {
-        await supabase
-          .from('companion_verifications')
-          .update({
-            email_verified: isEmailVerified,
-            email_verified_at: emailVerifiedAt,
-            profile_completed: false,
-            profile_completed_at: null,
-            phone_verified: false,
-            phone_verified_at: null,
-            phone_number: null,
-            document_verified: false,
-            document_verified_at: null,
-            document_status: null,
-            document_type: null,
-            document_front_url: null,
-            document_back_url: null,
-            photo_verified: false,
-            photo_verified_at: null,
-            photo_status: null,
-            verification_photos: null,
-            video_verified: false,
-            video_verified_at: null,
-            video_status: null,
-            verification_video_url: null,
-            reliability_score: initialReliabilityScore,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('companion_id', companionData.id);
-      } else {
-        await supabase
-          .from('companion_verifications')
-          .insert({
-            companion_id: companionData.id,
-            email_verified: isEmailVerified,
-            email_verified_at: emailVerifiedAt,
-            profile_completed: false,
-            phone_verified: false,
-            document_verified: false,
-            photo_verified: false,
-            video_verified: false,
-            reliability_score: initialReliabilityScore,
-          });
-      }
-
+      // Crie a tarefa pendente apenas se necessário. Retomar o cadastro
+      // nunca deve apagar verificações e pontos conquistados anteriormente.
+      const verification = await getOrCreateVerification(companionData.id);
+      if (!verification) throw new Error('Não foi possível preparar as tarefas do perfil. Tente novamente.');
       // Salvar no localStorage que o usuário está logado
       localStorage.setItem('user', JSON.stringify({
         id: authData.userId,

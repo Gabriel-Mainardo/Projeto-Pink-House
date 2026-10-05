@@ -1,50 +1,35 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { createClient, type EmailOtpType, type Session, type User } from '@supabase/supabase-js';
+import { type EmailOtpType, type User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { markEmailAsVerified } from '../services/verificationService';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://demo.supabase.co';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'demo-key';
-
-const EMAIL_CONFIRM_TYPES = ['signup', 'email', 'magiclink', 'email_change', 'recovery'];
-let supabaseImplicitCallback: ReturnType<typeof createClient> | null = null;
-const getSupabaseImplicitCallback = () => {
-  if (!supabaseImplicitCallback) {
-    supabaseImplicitCallback = createClient(
-      supabaseUrl,
-      supabaseAnonKey,
-      {
-        auth: {
-          flowType: 'implicit',
-          persistSession: false,
-          detectSessionInUrl: true,
-          storageKey: 'pinkhouse-email-callback',
-        },
-      }
-    );
-  }
-  return supabaseImplicitCallback;
-};
+const EMAIL_CONFIRM_TYPES = ['email', 'magiclink'];
 
 export default function AuthCallback() {
-  const navigate = useNavigate();
+  const routerNavigate = useNavigate();
+  const callbackExpired = useRef(false);
+  const callbackRun = useRef<Promise<void> | null>(null);
+  const navigate: typeof routerNavigate = ((...args: any[]) => {
+    if (!callbackExpired.current) (routerNavigate as any)(...args);
+  }) as typeof routerNavigate;
   const [searchParams] = useSearchParams();
   const [status, setStatus] = useState('Processando autenticação...');
   const [isError, setIsError] = useState(false);
   const [errorDetails, setErrorDetails] = useState<string | null>(null);
 
   useEffect(() => {
-    // Garantir tempo mínimo de loading visível (evita "piscar" e sumir)
-    const startTime = Date.now();
-    const MIN_LOADING_MS = 800;
-    (async () => {
-      await handleCallback();
-      const elapsed = Date.now() - startTime;
-      if (elapsed < MIN_LOADING_MS) {
-        await new Promise((r) => setTimeout(r, MIN_LOADING_MS - elapsed));
-      }
-    })();
+    // Execute uma única troca de tokens, inclusive em React StrictMode.
+    // Um link expirado ou uma conexão travada deve sempre oferecer uma saída.
+    const timeout = window.setTimeout(() => {
+      callbackExpired.current = true;
+      setIsError(true);
+      setStatus('A confirmação demorou mais que o esperado.');
+      setErrorDetails('Você pode continuar usando sua conta. Entre no site e reenvie o link pela tarefa Confirmar e-mail, nas verificações do perfil.');
+    }, 20000);
+    callbackRun.current ??= handleCallback();
+    void callbackRun.current.finally(() => window.clearTimeout(timeout));
+    return () => window.clearTimeout(timeout);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -80,6 +65,8 @@ export default function AuthCallback() {
     const type = searchParams.get('type');
     const accessToken = hashParams.get('access_token');
     const refreshToken = hashParams.get('refresh_token');
+    const callbackError = hashParams.get('error_description') || searchParams.get('error_description');
+    if (callbackError) throw new Error(callbackError);
 
     if (code) {
       console.log('AuthCallback: callback PKCE detectado, trocando code por sessao.');
@@ -95,22 +82,12 @@ export default function AuthCallback() {
     }
 
     if (tokenHash && type) {
-      console.log('AuthCallback: callback OTP detectado, verificando token_hash no cliente implicit.');
-      const { data, error } = await getSupabaseImplicitCallback().auth.verifyOtp({
+      const { data, error } = await supabase.auth.verifyOtp({
         token_hash: tokenHash,
         type: type as EmailOtpType,
       });
       if (error) {
         throw error;
-      }
-      if (data.session) {
-        const { error: setSessionError } = await supabase.auth.setSession({
-          access_token: data.session.access_token,
-          refresh_token: data.session.refresh_token,
-        });
-        if (setSessionError) {
-          throw setSessionError;
-        }
       }
       return data.user ?? data.session?.user ?? null;
     }
@@ -127,38 +104,7 @@ export default function AuthCallback() {
       return data.user ?? data.session?.user ?? null;
     }
 
-    const {
-      data: { session: implicitSession },
-    } = await getSupabaseImplicitCallback().auth.getSession();
-
-    if (implicitSession?.access_token && implicitSession?.refresh_token) {
-      console.log('AuthCallback: sessao implicit detectada, sincronizando com cliente principal.');
-      const { error } = await supabase.auth.setSession({
-        access_token: implicitSession.access_token,
-        refresh_token: implicitSession.refresh_token,
-      });
-      if (error) {
-        throw error;
-      }
-      return implicitSession.user;
-    }
-
     return null;
-  };
-
-  const syncMainClientSession = async (session: Session | null) => {
-    if (!session?.access_token || !session.refresh_token) {
-      return;
-    }
-
-    const { error } = await supabase.auth.setSession({
-      access_token: session.access_token,
-      refresh_token: session.refresh_token,
-    });
-
-    if (error) {
-      throw error;
-    }
   };
 
   const resolveVerificationCompanionId = async (user: any) => {
@@ -185,20 +131,6 @@ export default function AuthCallback() {
     const byEmail = await fetchLatestCompanion('email', user.email);
 
     return byEmail?.id || null;
-  };
-
-  const resolveVerificationCompanionIdWithoutUser = async () => {
-    const companionIdFromQuery = searchParams.get('companion_id');
-    if (companionIdFromQuery) {
-      return companionIdFromQuery;
-    }
-
-    const pendingCompanionId = localStorage.getItem('pendingEmailVerification');
-    if (pendingCompanionId) {
-      return pendingCompanionId;
-    }
-
-    return null;
   };
 
   const handleCallback = async () => {
@@ -234,62 +166,6 @@ export default function AuthCallback() {
 
         await processUser(resolvedUser, false);
         return;
-      }
-
-      const {
-        data: { session: implicitSession },
-      } = await getSupabaseImplicitCallback().auth.getSession();
-
-      if (implicitSession?.user) {
-        await syncMainClientSession(implicitSession);
-
-        if (isSignupConfirmation) {
-          await processUser(implicitSession.user, true);
-          return;
-        }
-
-        if (isEmailVerification) {
-          await handleEmailVerificationCallback(implicitSession.user);
-          return;
-        }
-
-        await processUser(implicitSession.user, false);
-        return;
-      }
-
-      if (isEmailVerification) {
-        const fallbackCompanionId = await resolveVerificationCompanionIdWithoutUser();
-
-        if (fallbackCompanionId) {
-          setStatus('Verificando email...');
-          const result = await markEmailAsVerified(fallbackCompanionId);
-
-          if (!result.success) {
-            throw new Error(result.message || 'Nao foi possivel concluir a verificacao de email.');
-          }
-
-          const companion = await fetchLatestCompanion('id', fallbackCompanionId);
-
-          if (companion) {
-            localStorage.setItem(
-              'user',
-              JSON.stringify({
-                id: companion.id,
-                email: companion.email,
-                name: companion.name || companion.email?.split('@')[0],
-                location: companion.location || '',
-                type: 'companion',
-                isLoggedIn: true,
-                companionId: companion.id,
-              })
-            );
-          }
-
-          localStorage.setItem('email_just_confirmed', '1');
-          setStatus('Email verificado! Redirecionando...');
-          window.setTimeout(() => navigate('/companion-dashboard?openVerification=true'), 1000);
-          return;
-        }
       }
 
       throw new Error('Nenhuma sessao foi identificada no callback.');
@@ -534,12 +410,12 @@ export default function AuthCallback() {
         } catch {
           // Dados temporários inválidos não devem bloquear a retomada do cadastro.
         }
-        const tempData = savedRegistration?.userId === user.id
+        const tempData: NonNullable<typeof savedRegistration> = savedRegistration?.userId === user.id
           ? savedRegistration
           : { userId: user.id, email: user.email, userType: 'companion' };
         localStorage.setItem('tempAuthData', JSON.stringify(tempData));
         localStorage.removeItem('pendingUserType');
-        setStatus('E-mail confirmado! Continue seu cadastro.');
+        setStatus('Continue seu cadastro.');
         navigate(tempData.artisticName && tempData.phone && tempData.age
           ? '/location-register'
           : '/basic-info-register');
@@ -651,7 +527,7 @@ export default function AuthCallback() {
               Tentar novamente
             </button>
             <button
-              onClick={() => navigate('/login')}
+              onClick={() => routerNavigate('/login', { replace: true })}
               className="w-full py-3 rounded-full text-gray-600 text-sm hover:text-gray-900 transition-colors"
             >
               Ir para o login

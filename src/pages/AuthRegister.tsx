@@ -18,28 +18,7 @@ export default function AuthRegister() {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [signupNotice, setSignupNotice] = useState('');
-  const [isResending, setIsResending] = useState(false);
-
   const emailRedirectTo = `${window.location.origin}/auth/callback?signup=${userType}`;
-
-  const resendConfirmation = async () => {
-    setError('');
-    setIsResending(true);
-    try {
-      const { error: resendError } = await supabase.auth.resend({
-        type: 'signup',
-        email: formData.email,
-        options: { emailRedirectTo },
-      });
-      if (resendError) throw resendError;
-      setSignupNotice('Enviamos um novo link. Confira seu e-mail para continuar o cadastro.');
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Não foi possível reenviar o link de confirmação.');
-    } finally {
-      setIsResending(false);
-    }
-  };
 
   useEffect(() => {
     if (requestedUserType === 'client') {
@@ -99,7 +78,6 @@ export default function AuthRegister() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    setSignupNotice('');
 
     // Validações
     if (!formData.email || !formData.password) {
@@ -169,10 +147,6 @@ export default function AuthRegister() {
             password: formData.password,
           });
 
-          if (signInError?.message === 'Email not confirmed') {
-            setSignupNotice('Confirme seu e-mail antes de continuar o cadastro.');
-            return;
-          }
           if (signInError) {
             throw new Error('Este email já está cadastrado. Faça login com sua senha.');
           }
@@ -185,11 +159,10 @@ export default function AuthRegister() {
       } else {
         authUser = data?.user;
 
-        // Sem sessão não há permissão para gravar o perfil. Aguarde a confirmação.
+        // O servidor libera a sessão no cadastro. A confirmação do endereço
+        // acontece depois, como tarefa de confiabilidade, sem bloquear o perfil.
         if (!data?.session) {
-          localStorage.setItem('pendingUserType', userType);
-          setSignupNotice('Enviamos um link de confirmação. Abra seu e-mail para continuar o cadastro.');
-          return;
+          throw new Error('Não foi possível iniciar sua sessão. Se você já criou esta conta, entre com seu e-mail e senha para continuar.');
         }
       }
 
@@ -334,6 +307,10 @@ export default function AuthRegister() {
             onChange={handleChange('email')}
             autoComplete="email"
           />
+          <p className="mb-5 text-sm text-gray-500">
+            Usaremos este endereço para enviar mensagens e o link de verificação.
+            Você poderá confirmar seu e-mail depois, nas tarefas de confiabilidade.
+          </p>
 
           <InputField
             id="password"
@@ -350,18 +327,6 @@ export default function AuthRegister() {
               <p className="text-red-600 text-sm" style={{ fontFamily: "'Inter', sans-serif" }}>
                 {error}
               </p>
-            </div>
-          )}
-
-          {signupNotice && (
-            <div className="mb-5 p-4 bg-green-50 border border-green-200 rounded-2xl" role="status">
-              <p className="text-green-800 text-sm">{signupNotice}</p>
-              <button type="button" onClick={resendConfirmation} disabled={isResending} className="mt-2 text-sm font-semibold text-green-800 underline disabled:opacity-50">
-                {isResending ? 'Reenviando...' : 'Reenviar link de confirmação'}
-              </button>
-              <button type="button" onClick={() => navigate('/login')} className="ml-4 text-sm font-semibold text-green-800 underline">
-                Já confirmei, entrar
-              </button>
             </div>
           )}
 

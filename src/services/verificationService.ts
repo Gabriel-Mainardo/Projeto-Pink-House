@@ -14,7 +14,7 @@ const getSupabaseImplicit = () => {
     supabaseImplicit = createClient(
       supabaseUrl,
       supabaseAnonKey,
-      { auth: { flowType: 'implicit', persistSession: false, storageKey: 'pinkhouse-email-verification' } }
+      { auth: { flowType: 'implicit', persistSession: false, autoRefreshToken: false, detectSessionInUrl: false, storageKey: 'pinkhouse-email-verification' } }
     );
   }
   return supabaseImplicit;
@@ -826,6 +826,16 @@ export async function sendEmailMagicLink(
     if (!email) {
       return { success: false, message: 'Email nao informado.' };
     }
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user?.email) {
+      return { success: false, message: 'Entre na sua conta para confirmar o e-mail.' };
+    }
+    const { data: companion } = await supabase.from('acompanhantes')
+      .select('auth_user_id, email').eq('id', companionId).maybeSingle();
+    if (companion?.auth_user_id !== user.id || companion.email?.toLowerCase() !== user.email.toLowerCase()) {
+      return { success: false, message: 'O e-mail precisa pertencer à conta deste perfil.' };
+    }
+    email = user.email;
 
     // Check if email is in Resend's suppression list before attempting to send.
     // signInWithOtp silently succeeds even for suppressed addresses, so we must
@@ -843,7 +853,7 @@ export async function sendEmailMagicLink(
     // Store companionId so the callback can mark email as verified
     localStorage.setItem('pendingEmailVerification', companionId);
 
-    const redirectUrl = new URL('https://pinkhousebr.com/auth/callback');
+    const redirectUrl = new URL('/auth/callback', window.location.origin);
     redirectUrl.searchParams.set('source', 'email_verification');
     redirectUrl.searchParams.set('companion_id', companionId);
 
@@ -879,134 +889,21 @@ export async function markEmailAsVerified(
   companionId: string
 ): Promise<{ success: boolean; message?: string }> {
   try {
-    if (!companionId) {
-      return { success: false, message: 'ID da acompanhante ausente.' };
-    }
+    if (!companionId) return { success: false, message: 'Perfil não encontrado.' };
+    const record = await ensureVerificationRecord(companionId);
+    if (!record) return { success: false, message: 'Não foi possível preparar a verificação.' };
 
-    // ============= TRAVAS DE SEGURANÇA =============
-    // Esta função SÓ pode ser chamada do AuthCallback após Supabase Auth ter
-    // processado um magic link válido. Validamos:
-    //   1. Existe sessão ativa do Supabase Auth (criada pelo clique no link).
-    //   2. O usuário da sessão tem email_confirmed_at — só é prova real se
-    //      "Confirm email" estiver ATIVO em Supabase Auth Settings.
-    //      Se estiver desativado, o Supabase auto-seta isso no signup e o flag
-    //      não é confiável (é dever do operador do projeto manter ATIVO).
-    //   3. A acompanhante pertence ao usuário autenticado (auth_user_id OU email).
-    //
-    // O flag localStorage.pendingEmailVerification é apenas informativo e NÃO é
-    // requisito (quebra fluxo cross-device / cross-browser).
-
-    const { data: { session }, error: sessErr } = await supabase.auth.getSession();
-    if (sessErr || !session?.user) {
-      return {
-        success: false,
-        message: 'Sessão não encontrada. Abra o link recebido por email no mesmo navegador.',
-      };
-    }
-
-    // Prova de "clicou no link": sessão fresca (last_sign_in_at < 10min).
-    // Isso significa que o magic link acabou de criar ou renovar a sessão.
-    // NÃO usar email_confirmed_at — com mailer_autoconfirm ativo, esse campo
-    // é auto-setado no signup para todos os usuários, tornando-o inútil como
-    // prova de que a usuária realmente clicou em um link de verificação.
-    const lastSignInAt = session.user.last_sign_in_at;
-    const sessionIsFresh =
-      lastSignInAt && Date.now() - new Date(lastSignInAt).getTime() < 10 * 60 * 1000;
-
-    if (!sessionIsFresh) {
-      return {
-        success: false,
-        message:
-          'Sessão antiga detectada. Reenvie o link de verificação e clique nele novamente.',
-      };
-    }
-
-    // Ownership: a acompanhante precisa pertencer ao usuário autenticado.
-    const { data: companion, error: companionErr } = await supabase
-      .from('acompanhantes')
-      .select('id, auth_user_id, email')
-      .eq('id', companionId)
-      .maybeSingle();
-
-    if (companionErr || !companion) {
-      return { success: false, message: 'Acompanhante não encontrada.' };
-    }
-
-    const sessionEmail = (session.user.email || '').toLowerCase();
-    const companionEmail = (companion.email || '').toLowerCase();
-    const ownsCompanion =
-      (companion.auth_user_id && companion.auth_user_id === session.user.id) ||
-      (sessionEmail && companionEmail && sessionEmail === companionEmail);
-
-    if (!ownsCompanion) {
-      return {
-        success: false,
-        message: 'Verificação não autorizada para este perfil.',
-      };
-    }
-
-    // Se não tinha auth_user_id ainda, vinculamos agora (seguro porque o email bate).
-    if (!companion.auth_user_id) {
-      await supabase
-        .from('acompanhantes')
-        .update({ auth_user_id: session.user.id })
-        .eq('id', companionId);
-    }
-
-    // ============= TRAVAS PASSARAM — pode marcar verificado =============
-
-    const ensuredRecord = await ensureVerificationRecord(companionId);
-    if (!ensuredRecord) {
-      return { success: false, message: 'Nao foi possivel localizar o registro de verificacao.' };
-    }
-
-    const verifiedAt = emailConfirmedAt || new Date().toISOString();
-
-    // UPDATE direto pra capturar o erro real do PostgREST (RLS, validação, etc).
-    // Não usamos updateVerificationRecord aqui porque ele retorna boolean e perde
-    // o detalhe do erro.
-    const { data: updateData, error: updateError } = await supabase
-      .from('companion_verifications')
-      .update({
-        email_verified: true,
-        email_verified_at: verifiedAt,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('companion_id', companionId)
-      .select('id');
-
-    if (updateError) {
-      console.error('Erro ao marcar email como verificado:', updateError);
-      return {
-        success: false,
-        message: `Falha ao salvar (${updateError.code || 'erro'}): ${updateError.message}`,
-      };
-    }
-
-    if (!updateData || updateData.length === 0) {
-      console.error('UPDATE não retornou linha (RLS pode estar bloqueando RETURNING).');
-      // Fallback: re-lê pra confirmar se foi salvo mesmo assim.
-      const fresh = await getVerification(companionId);
-      if (!fresh?.email_verified) {
-        return {
-          success: false,
-          message: 'O banco não aceitou a atualização. Verifique permissões RLS.',
-        };
-      }
-    }
-
+    // O banco confere a sessão assinada pelo Auth, a propriedade do perfil
+    // e uma autenticação OTP recente. Login com senha não comprova o e-mail.
+    const { error } = await supabase.rpc('confirm_companion_email', { p_companion_id: companionId });
+    if (error) return { success: false, message: error.message };
     await persistReliabilityScore(companionId);
     localStorage.removeItem('pendingEmailVerification');
-    return { success: true, message: 'Email verificado com sucesso!' };
+    return { success: true, message: 'E-mail confirmado! Você ganhou 20 pontos de confiabilidade.' };
   } catch (error: any) {
-    console.error('Erro em markEmailAsVerified:', error);
-    return {
-      success: false,
-      message: error?.message || 'Erro ao verificar email.',
-    };
+    return { success: false, message: error?.message || 'Não foi possível confirmar o e-mail.' };
   }
 }
-
 export async function checkEmailVerifiedInDb(
   companionId: string
 ): Promise<boolean> {

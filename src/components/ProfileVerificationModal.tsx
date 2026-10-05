@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { X, Hand, IdCard, Camera, Video, Mail, UserCircle, CheckCircle2, ShieldCheck, Images, Mic } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '../lib/supabase';
 import ProgressBar from './security/ProgressBar';
 import StepRow from './security/StepRow';
 import VideoVerificationModal from './VideoVerificationModal';
@@ -15,7 +16,6 @@ import {
   getCompletedSteps,
   getOrCreateVerification,
   getPendingSteps,
-  markEmailAsVerified,
   resolveCompanionId,
   submitDocument,
   submitGestureSelfie,
@@ -27,8 +27,8 @@ import {
 const basicSteps: SecurityStep[] = [
   {
     id: '2',
-    title: 'Confirmar Email',
-    description: 'Verifique seu email para notificacoes.',
+    title: 'Confirmar E-mail',
+    description: 'Confirme seu endereço para receber mensagens e ganhar 20 pontos. Você pode fazer isso depois do cadastro.',
     points: 20,
     actionLabel: 'Verificar',
     icon: Mail,
@@ -245,10 +245,6 @@ export default function ProfileVerificationModal({
   };
 
   const handleEmailVerified = async () => {
-    // Garantir que o email seja marcado como verificado no banco (safety net)
-    if (resolvedCompanionId) {
-      await markEmailAsVerified(resolvedCompanionId);
-    }
     await loadVerificationData();
   };
 

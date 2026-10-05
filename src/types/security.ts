@@ -14,6 +14,7 @@ export interface SecurityStep {
     | 'phone'
     | 'email'
     | 'profile'
+    | 'audio'
     | 'media-comparison';
 }
 
