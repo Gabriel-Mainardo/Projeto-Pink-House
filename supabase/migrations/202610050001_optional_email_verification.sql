@@ -1,5 +1,10 @@
 begin;
 
+-- The owner must be able to read their own profile even while offline.
+drop policy if exists "Profissional vê próprio perfil" on public.acompanhantes;
+create policy "Profissional vê próprio perfil" on public.acompanhantes
+for select to authenticated using (auth.uid() = auth_user_id);
+
 -- Password login is available immediately; this Auth flag is NOT trust proof.
 -- Existing professional registrations can resume with their original password.
 update auth.users u
