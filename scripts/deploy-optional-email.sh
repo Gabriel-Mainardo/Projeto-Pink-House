@@ -27,10 +27,10 @@ docker exec -i supabase-db psql -U postgres -d postgres -v ON_ERROR_STOP=1 \
 sed -i 's/^ENABLE_EMAIL_AUTOCONFIRM=.*/ENABLE_EMAIL_AUTOCONFIRM=true/' .env
 docker compose up -d --no-deps auth
 for attempt in $(seq 1 15); do
-  if curl -fsS https://srv1978766.hstgr.cloud/auth/v1/health > /dev/null; then break; fi
+  if curl -fsS -H "apikey: $VITE_SUPABASE_ANON_KEY" https://srv1978766.hstgr.cloud/auth/v1/health > /dev/null; then break; fi
   sleep 2
 done
-curl -fsS https://srv1978766.hstgr.cloud/auth/v1/health > /dev/null
+curl -fsS -H "apikey: $VITE_SUPABASE_ANON_KEY" https://srv1978766.hstgr.cloud/auth/v1/health > /dev/null
 cp -a "$repo/dist/assets/." /opt/pinkhouse/site-dist/assets/
 find "$repo/dist" -maxdepth 1 -type f ! -name index.html -exec cp -a '{}' /opt/pinkhouse/site-dist/ \;
 cp -a "$repo/dist/index.html" /opt/pinkhouse/site-dist/index.html
