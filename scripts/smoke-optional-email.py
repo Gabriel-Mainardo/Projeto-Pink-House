@@ -47,8 +47,13 @@ try:
     assert status == 201 and profiles, ('own profile insert', status, profiles)
     companion_id = profiles[0]['id']
     status, records = call('POST', '/rest/v1/companion_verifications', token=token,
-        data={'companion_id': companion_id, 'email_verified': False, 'profile_completed': False})
+        data={'companion_id': companion_id, 'email_verified': False, 'profile_completed': False,
+              'document_verified': False, 'document_status': None,
+              'photo_verified': False, 'photo_status': None,
+              'video_verified': False, 'video_status': None,
+              'media_comparison_verified': False, 'media_comparison_status': None})
     assert status == 201, ('verification insert', status, records)
+    assert records[0]['reliability_score'] == 0, ('initial trust score', records)
     status, _ = call('POST', '/rest/v1/rpc/confirm_companion_email', token=token,
         data={'p_companion_id': companion_id})
     assert status == 403, ('password must not verify email', status)
