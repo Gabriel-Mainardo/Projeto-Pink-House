@@ -1,0 +1,26 @@
+{
+  "CONFIRMATION": {
+    "file": "confirmation.html",
+    "subject": "Pink House | Confirme seu e-mail"
+  },
+  "MAGIC_LINK": {
+    "file": "magic-link.html",
+    "subject": "Pink House | Confirme seu e-mail e continue"
+  },
+  "RECOVERY": {
+    "file": "recovery.html",
+    "subject": "Pink House | Redefina sua senha"
+  },
+  "INVITE": {
+    "file": "invite.html",
+    "subject": "Pink House | Você recebeu um convite"
+  },
+  "EMAIL_CHANGE": {
+    "file": "email-change.html",
+    "subject": "Pink House | Confirme a alteração do seu e-mail"
+  },
+  "REAUTHENTICATION": {
+    "file": "reauthentication.html",
+    "subject": "Pink House | Seu código de verificação"
+  }
+}
