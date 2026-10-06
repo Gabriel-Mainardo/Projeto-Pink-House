@@ -8,9 +8,7 @@ import html
 import json
 import re
 import secrets
-import socketserver
 import subprocess
-import threading
 import time
 import urllib.error
 import urllib.parse
@@ -22,46 +20,22 @@ repo = Path(__file__).resolve().parents[1]
 templates = json.loads((repo / 'supabase/email-templates/config.pt-BR.json').read_text())
 container = json.loads(subprocess.check_output(['docker', 'inspect', 'supabase-auth']))[0]
 network, network_info = next(iter(container['NetworkSettings']['Networks'].items()))
-gateway = network_info['Gateway']
 env = dict(value.split('=', 1) for value in container['Config']['Env'] if '=' in value)
-original_autoconfirm = env.get('GOTRUE_MAILER_AUTOCONFIRM')
 service = dict(line.split('=', 1) for line in Path('/opt/pinkhouse/.env').read_text().splitlines() if '=' in line and not line.startswith('#'))['SERVICE_ROLE_KEY'].strip('"')
-received = []
+capture = Path('/opt/pinkhouse-migration/email-template-capture')
+capture.mkdir(mode=0o700, exist_ok=True)
+smtp_container = 'pinkhouse-email-template-smtp-test'
+subprocess.run(['docker', 'run', '-d', '--name', smtp_container, '--network', network,
+    '-v', str(capture) + ':/capture', '-v', str(repo / 'scripts/smtp-capture.mjs') + ':/script.mjs:ro',
+    'node:22-alpine', 'node', '/script.mjs'], check=True, stdout=subprocess.DEVNULL)
+smtp_info = json.loads(subprocess.check_output(['docker', 'inspect', smtp_container]))[0]
+smtp_ip = smtp_info['NetworkSettings']['Networks'][network]['IPAddress']
 
-class SMTPHandler(socketserver.StreamRequestHandler):
-    def handle(self):
-        def reply(value):
-            self.wfile.write((value + '\r\n').encode())
-            self.wfile.flush()
-        reply('220 email-preview.local ESMTP')
-        while line := self.rfile.readline():
-            command = line.decode(errors='replace').strip().upper()
-            if command.startswith(('EHLO', 'HELO')):
-                reply('250-email-preview.local')
-                reply('250 8BITMIME')
-            elif command == 'DATA':
-                reply('354 End data with <CRLF>.<CRLF>')
-                chunks = []
-                while chunk := self.rfile.readline():
-                    if chunk == b'.\r\n':
-                        break
-                    chunks.append(chunk[1:] if chunk.startswith(b'..') else chunk)
-                received.append(email.message_from_bytes(b''.join(chunks)))
-                reply('250 Message captured for test only')
-            elif command == 'QUIT':
-                reply('221 Bye')
-                break
-            else:
-                reply('250 OK')
+def messages():
+    return [email.message_from_bytes(path.read_bytes()) for path in sorted(capture.glob('message-*.eml'))]
 
-class SMTPServer(socketserver.ThreadingTCPServer):
-    allow_reuse_address = True
-    daemon_threads = True
-
-smtp = SMTPServer((gateway, 0), SMTPHandler)
-threading.Thread(target=smtp.serve_forever, daemon=True).start()
 env.update({
-    'GOTRUE_SMTP_HOST': gateway, 'GOTRUE_SMTP_PORT': str(smtp.server_address[1]),
+    'GOTRUE_SMTP_HOST': smtp_ip, 'GOTRUE_SMTP_PORT': '2525',
     'GOTRUE_SMTP_USER': '', 'GOTRUE_SMTP_PASS': '',
     'GOTRUE_SMTP_MAX_FREQUENCY': '0s', 'GOTRUE_RATE_LIMIT_EMAIL_SENT': '200',
     'GOTRUE_MAILER_AUTOCONFIRM': 'false',
@@ -92,9 +66,9 @@ def call(method, path, data=None, token=service):
         return error.code, None
 
 def verify_mail(flow, start):
-    messages = received[start:]
-    assert messages, (flow, 'no email captured')
-    for message in messages:
+    captured_messages = messages()[start:]
+    assert captured_messages, (flow, 'no email captured')
+    for message in captured_messages:
         subject = str(make_header(decode_header(message['Subject'])))
         assert subject == templates[flow]['subject'], (flow, 'unexpected subject')
         sender = str(make_header(decode_header(message['From'])))
@@ -117,7 +91,7 @@ def verify_mail(flow, start):
             preview_dir = Path('/opt/pinkhouse/site-dist/email-preview-ptbr')
             preview_dir.mkdir(exist_ok=True)
             (preview_dir / templates[flow]['file']).write_text(preview)
-    print(f'PASS: {flow} — {len(messages)} message(s), Portuguese subject/body, rendered links/code.')
+    print(f'PASS: {flow} — {len(captured_messages)} message(s), Portuguese subject/body, rendered links/code.')
 
 try:
     subprocess.run(['docker', 'run', '-d', '--name', test_container, '--network', network,
@@ -132,20 +106,20 @@ try:
             pass
         time.sleep(1)
     assert call('GET', '/health')[0] == 200, 'Isolated Auth did not start'
-    start = len(received)
+    start = len(messages())
     status, user = call('POST', '/signup', {'email': address, 'password': password})
     assert status == 200 and user, ('signup', status)
     user_id = user.get('id') or user['user']['id']
     created.append(user_id)
     verify_mail('CONFIRMATION', start)
     assert call('PUT', '/admin/users/' + user_id, {'email_confirm': True})[0] == 200
-    start = len(received)
+    start = len(messages())
     assert call('POST', '/otp', {'email': address, 'create_user': False})[0] == 200
     verify_mail('MAGIC_LINK', start)
-    start = len(received)
+    start = len(messages())
     assert call('POST', '/recover', {'email': address})[0] == 200
     verify_mail('RECOVERY', start)
-    start = len(received)
+    start = len(messages())
     status, invite = call('POST', '/invite', {'email': address.replace('@', '-invite@')})
     assert status == 200 and invite, ('invite', status)
     created.append(invite['id'])
@@ -153,13 +127,13 @@ try:
     status, login = call('POST', '/token?grant_type=password', {'email': address, 'password': password})
     assert status == 200 and login.get('access_token'), ('password login', status)
     token = login['access_token']
-    start = len(received)
+    start = len(messages())
     assert call('GET', '/reauthenticate', token=token)[0] == 200
     verify_mail('REAUTHENTICATION', start)
-    start = len(received)
+    start = len(messages())
     assert call('PUT', '/user', {'email': address.replace('@', '-new@')}, token=token)[0] == 200
     verify_mail('EMAIL_CHANGE', start)
-    print(f'PASS: All six Auth flows captured privately; {len(received)} total messages; no mail sent to users.')
+    print(f'PASS: All six Auth flows captured privately; {len(messages())} total messages; no mail sent to users.')
 finally:
     failures = []
     if base:
@@ -167,8 +141,10 @@ finally:
             if call('DELETE', '/admin/users/' + user_id)[0] != 200:
                 failures.append(user_id)
     subprocess.run(['docker', 'rm', '-f', test_container], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    smtp.shutdown()
-    smtp.server_close()
+    subprocess.run(['docker', 'rm', '-f', smtp_container], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    for path in capture.glob('message-*.eml'):
+        path.unlink()
+    capture.rmdir()
     env_path.unlink(missing_ok=True)
     assert not failures, 'Some disposable Auth users were not removed'
     print('CLEANUP: Disposable users, isolated Auth container and temporary credentials removed.')
