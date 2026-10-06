@@ -37,7 +37,7 @@ def messages():
 env.update({
     'GOTRUE_SMTP_HOST': smtp_ip, 'GOTRUE_SMTP_PORT': '2525',
     'GOTRUE_SMTP_USER': '', 'GOTRUE_SMTP_PASS': '',
-    'GOTRUE_SMTP_MAX_FREQUENCY': '0s', 'GOTRUE_RATE_LIMIT_EMAIL_SENT': '200',
+    'GOTRUE_SMTP_MAX_FREQUENCY': '1s', 'GOTRUE_RATE_LIMIT_EMAIL_SENT': '200',
     'GOTRUE_MAILER_AUTOCONFIRM': 'false',
     'GOTRUE_MAILER_SECURE_EMAIL_CHANGE_ENABLED': 'true',
 })
@@ -62,8 +62,8 @@ def call(method, path, data=None, token=service):
             body = response.read()
             return response.status, json.loads(body) if body else None
     except urllib.error.HTTPError as error:
-        # Avoid logging body/token/addresses. The status and operation identify failures.
-        return error.code, None
+        payload = json.loads(error.read())
+        return error.code, {'error_code': payload.get('error_code'), 'msg': payload.get('msg')}
 
 def verify_mail(flow, start):
     captured_messages = messages()[start:]
@@ -113,12 +113,16 @@ try:
     created.append(user_id)
     verify_mail('CONFIRMATION', start)
     assert call('PUT', '/admin/users/' + user_id, {'email_confirm': True})[0] == 200
+    time.sleep(1.2)
     start = len(messages())
     assert call('POST', '/otp', {'email': address, 'create_user': False})[0] == 200
     verify_mail('MAGIC_LINK', start)
+    time.sleep(1.2)
     start = len(messages())
-    assert call('POST', '/recover', {'email': address})[0] == 200
+    status, recovery = call('POST', '/recover', {'email': address})
+    assert status == 200, ('recovery', status, recovery)
     verify_mail('RECOVERY', start)
+    time.sleep(1.2)
     start = len(messages())
     status, invite = call('POST', '/invite', {'email': address.replace('@', '-invite@')})
     assert status == 200 and invite, ('invite', status)
@@ -127,9 +131,12 @@ try:
     status, login = call('POST', '/token?grant_type=password', {'email': address, 'password': password})
     assert status == 200 and login.get('access_token'), ('password login', status)
     token = login['access_token']
+    time.sleep(1.2)
     start = len(messages())
-    assert call('GET', '/reauthenticate', token=token)[0] == 200
+    status, reauthentication = call('GET', '/reauthenticate', token=token)
+    assert status == 200, ('reauthentication', status, reauthentication)
     verify_mail('REAUTHENTICATION', start)
+    time.sleep(1.2)
     start = len(messages())
     assert call('PUT', '/user', {'email': address.replace('@', '-new@')}, token=token)[0] == 200
     verify_mail('EMAIL_CHANGE', start)
