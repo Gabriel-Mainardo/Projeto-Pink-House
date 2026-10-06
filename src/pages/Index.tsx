@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import {
@@ -25,7 +25,7 @@ import {
 import { AgeGateWrapper } from '../components/AgeGateWrapper';
 import Footer from '../components/Footer';
 import { acompanhantesService, type Acompanhante } from '../services/acompanhantesService';
-import { getReliabilityScoresBatch } from '../services/verificationService';
+import { useReliabilityScores } from '../hooks/useReliabilityScores';
 import { useLocation } from '../contexts/LocationContext';
 import { metropolitanCities } from '../lib/recife-metropolitan-area';
 import { storiesService } from '../services/storiesService';
@@ -549,7 +549,12 @@ const Index: React.FC = () => {
   const selectedCity = locationContext?.selectedCity || { name: 'Recife', state: 'Pernambuco', fullName: 'Recife - PE' };
 
   const [activeTab, setActiveTab] = useState<'Mulheres' | 'Homens' | 'Trans'>('Mulheres');
-  const [companions, setCompanions] = useState<Acompanhante[]>([]);
+  const [loadedCompanions, setCompanions] = useState<Acompanhante[]>([]);
+  const reliabilityScores = useReliabilityScores(loadedCompanions.map((profile) => profile.id));
+  const companions = useMemo(() => loadedCompanions.map((profile) => ({
+    ...profile,
+    reliability_score: reliabilityScores[profile.id] ?? 0,
+  })), [loadedCompanions, reliabilityScores]);
   const [loading, setLoading] = useState(true);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [showSearchModal, setShowSearchModal] = useState(false);
@@ -602,13 +607,7 @@ const Index: React.FC = () => {
         setLoading(true);
         const data = await acompanhantesService.getAll();
         const validCompanions = data.filter(Boolean);
-        const reliabilityScores = await getReliabilityScoresBatch(validCompanions.map((companion) => companion.id));
-        setCompanions(
-          validCompanions.map((companion) => ({
-            ...companion,
-            reliability_score: reliabilityScores[companion.id] || 0,
-          }))
-        );
+        setCompanions(validCompanions);
       } catch (error) {
         console.error('Error loading companions:', error);
         setCompanions([]);
@@ -756,7 +755,7 @@ const Index: React.FC = () => {
   }));
 
   const getProfileReliabilityScore = (profile: Acompanhante) =>
-    Math.max(0, Math.min(100, Number(profile.reliability_score) || 0));
+    Math.max(0, Math.min(100, reliabilityScores[profile.id] ?? (Number(profile.reliability_score) || 0)));
 
   // Separar perfis em três grupos: subidas, online e offline.
   const boostedProfiles = [...displayCompanions]

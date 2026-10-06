@@ -17,6 +17,7 @@ interface CompanionCardProps {
   adVideo?: string;
   audioUrl?: string;
   rating: number;
+  reliabilityScore: number;
   tags: string[];
   phone?: string;
   age?: number;
@@ -40,6 +41,7 @@ const CompanionCard = ({
   adVideo,
   audioUrl,
   rating,
+  reliabilityScore,
   phone,
   age,
   description,
@@ -62,7 +64,7 @@ const CompanionCard = ({
   const [videoMuted, setVideoMuted] = useState(true);
 
   const isAmbassador = plan === 'black';
-  const reliabilityPercent = 92;
+  const reliabilityPercent = Math.max(0, Math.min(100, Number(reliabilityScore) || 0));
 
   const handleViewProfile = () => {
     setShowAdPreview(true);

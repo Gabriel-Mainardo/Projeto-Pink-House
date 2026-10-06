@@ -2,13 +2,14 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import AdPreviewModal from '../components/AdPreviewModal';
 import { acompanhantesService, type Acompanhante } from '../services/acompanhantesService';
-import { getReliabilityScore } from '../services/verificationService';
+import { useReliabilityScores } from '../hooks/useReliabilityScores';
 
 const ProfilePreviewRoute = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [profile, setProfile] = useState<Acompanhante | null>(null);
-  const [reliabilityScore, setReliabilityScore] = useState(0);
+  const reliabilityScores = useReliabilityScores(id ? [id] : []);
+  const reliabilityScore = reliabilityScores[id] ?? 0;
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -23,13 +24,8 @@ const ProfilePreviewRoute = () => {
         setLoading(true);
         setError(null);
 
-        const [profileData, score] = await Promise.all([
-          acompanhantesService.getById(id),
-          getReliabilityScore(id).catch(() => 0),
-        ]);
-
+        const profileData = await acompanhantesService.getById(id);
         setProfile(profileData);
-        setReliabilityScore(score);
       } catch {
         setError('Perfil nao encontrado');
       } finally {

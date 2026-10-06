@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { acompanhantesService, type Acompanhante } from '../lib/supabase';
 import { Heart, BadgeCheck, Play, Smartphone, CreditCard, DollarSign, Gift, ArrowLeft, MapPin, Star, MessageSquare, Share2, ChevronLeft, ChevronRight, Phone, X, PhoneCall, Send } from 'lucide-react';
-import { getReliabilityScore } from '../services/verificationService';
+import { useReliabilityScores } from '../hooks/useReliabilityScores';
 import Footer from '../components/Footer';
 import VoicePlayer from '../components/VoicePlayer';
 
@@ -14,7 +14,8 @@ const Profile = () => {
   const [error, setError] = useState<string | null>(null);
   const [isOwnProfile, setIsOwnProfile] = useState(false);
   const [profileCompleteness, setProfileCompleteness] = useState(0);
-  const [reliabilityScore, setReliabilityScore] = useState(0);
+  const reliabilityScores = useReliabilityScores(id ? [id] : []);
+  const reliabilityScore = reliabilityScores[id] ?? 0;
   const [liked, setLiked] = useState(false);
   const [activePhoto, setActivePhoto] = useState<string | null>(null);
   const [activeVideo, setActiveVideo] = useState<string | null>(null);
@@ -102,8 +103,6 @@ const Profile = () => {
           if (profileData.audio_url) c += 5;
           setProfileCompleteness(Math.min(c, 100));
         }
-        const score = await getReliabilityScore(id);
-        setReliabilityScore(score);
       } catch {
         setError('Perfil não encontrado');
         setTimeout(() => navigate('/'), 2000);

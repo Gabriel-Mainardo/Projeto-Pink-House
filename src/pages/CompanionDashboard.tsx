@@ -7,6 +7,7 @@ import { EditAcompanhanteModal } from '../components/EditAcompanhanteModal';
 import ProfileMediaManager from '../components/ProfileMediaManager';
 import DeleteAccountButton from '../components/DeleteAccountButton';
 import { getReliabilityScore } from '../services/verificationService';
+import { useReliabilityScores } from '../hooks/useReliabilityScores';
 import { useToast } from '../hooks/use-toast';
 import { usePinkWallet } from '../hooks/usePinkWallet';
 import {
@@ -346,6 +347,12 @@ const CompanionDashboard: React.FC = () => {
   const [companionId, setCompanionId] = useState<string | null>(null);
   const [isAvailable, setIsAvailable] = useState(false);
   const [reliability, setReliability] = useState(0);
+  const reliabilityScores = useReliabilityScores(companionId ? [companionId] : []);
+  useEffect(() => {
+    if (companionId && typeof reliabilityScores[companionId] === 'number') {
+      setReliability(reliabilityScores[companionId]);
+    }
+  }, [companionId, reliabilityScores]);
   const [activeTab, setActiveTab] = useState<DashboardTab>('dashboard');
   const [unreadMessages, setUnreadMessages] = useState(0);
   const [userAvatar, setUserAvatar] = useState<string | null>(null);

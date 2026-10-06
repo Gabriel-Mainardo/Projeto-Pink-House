@@ -35,3 +35,4 @@ dist-ssr
 # Local workspace files
 .claude/
 supabase/.temp/
+.site-functions-build/

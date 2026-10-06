@@ -119,6 +119,7 @@ const CardPreview = () => {
                 image={card.image}
                 gallery={card.gallery}
                 rating={card.rating}
+                reliabilityScore={0}
                 tags={card.tags}
                 phone={card.phone}
                 age={card.age}

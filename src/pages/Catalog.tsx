@@ -6,6 +6,7 @@ import CompanionCard from '../components/CompanionCard';
 import AdCard from '../components/AdCard';
 import { acompanhantesService } from '../services/acompanhantesService';
 import { especialidadesService, type Especialidade } from '../lib/supabase';
+import { useReliabilityScores } from '../hooks/useReliabilityScores';
 
 // Tipo local que estende o service com campos de boost
 type Acompanhante = Awaited<ReturnType<typeof acompanhantesService.getAll>>[number];
@@ -21,6 +22,7 @@ const Catalog = () => {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<Acompanhante[]>([]);
+  const reliabilityScores = useReliabilityScores([...acompanhantes, ...searchResults].map((profile) => profile.id));
   const [isSearchingDB, setIsSearchingDB] = useState(false);
   const [searchParams] = useSearchParams();
   const [showFilters, setShowFilters] = useState(false);
@@ -808,6 +810,7 @@ const Catalog = () => {
                         audioUrl={item.data.audio_url}
                         adVideo={item.data.adVideo}
                         rating={item.data.rating}
+                        reliabilityScore={reliabilityScores[item.data.id] ?? 0}
                         tags={item.data.tags}
                         isFeatured={item.data.is_featured}
                         phone={item.data.phone}
