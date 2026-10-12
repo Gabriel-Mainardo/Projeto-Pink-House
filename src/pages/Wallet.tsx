@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowDownLeft,
@@ -16,6 +16,8 @@ import {
   X,
 } from 'lucide-react';
 import { PixPaymentModal } from '../components/PixPaymentModal';
+import { PinkcoinPurchasePreview } from '../components/PinkcoinPurchasePreview';
+import { PINKCOIN_PREVIEW_MODE } from '../config/pinkcoinPreview';
 import { usePinkWallet } from '../hooks/usePinkWallet';
 import { pinkWalletService } from '../services/pinkWalletService';
 import type { PinkcoinPackage, WalletActivity } from '../types/pinkEconomy';
@@ -53,8 +55,13 @@ const Wallet = () => {
   const [showPackages, setShowPackages] = useState(false);
   const [selectedPackage, setSelectedPackage] = useState<PinkcoinPackage | null>(null);
   const [filter, setFilter] = useState<HistoryFilter>('all');
+  const purchaseButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
+    if (PINKCOIN_PREVIEW_MODE) {
+      setPackagesLoading(false);
+      return;
+    }
     let active = true;
     pinkWalletService.getActivePackages()
       .then((data) => {
@@ -122,8 +129,9 @@ const Wallet = () => {
               </p>
             </div>
             <button
+              ref={purchaseButtonRef}
               onClick={() => setShowPackages(true)}
-              disabled={packagesLoading || packages.length === 0}
+              disabled={!PINKCOIN_PREVIEW_MODE && (packagesLoading || packages.length === 0)}
               className="flex h-11 items-center justify-center gap-2 rounded-lg bg-[#d91d83] px-5 text-sm font-bold text-white transition-colors hover:bg-[#b90a69] disabled:cursor-not-allowed disabled:bg-gray-300"
             >
               {packagesLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
@@ -159,7 +167,14 @@ const Wallet = () => {
           </button>
         </section>
 
-        {packages.length === 0 && !packagesLoading && (
+        {PINKCOIN_PREVIEW_MODE && (
+          <section className="mt-5 flex items-start gap-3 rounded-lg border border-pink-100 bg-pink-50 px-4 py-3 text-sm text-gray-600">
+            <ReceiptText className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#d91d83]" />
+            <p><strong className="text-[#d91d83]">Pacotes em demonstração.</strong> Use Comprar PinkCoins para visualizar preços fictícios e simular uma compra sem cobrança.</p>
+          </section>
+        )}
+
+        {!PINKCOIN_PREVIEW_MODE && packages.length === 0 && !packagesLoading && (
           <section className="mt-5 flex items-start gap-3 border-l-4 border-[#d91d83] bg-white px-4 py-3 text-sm text-gray-600">
             <ReceiptText className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#d91d83]" />
             Os pacotes de PinkCoins estão em configuração. Nenhuma cobrança será criada até que preços e quantidades sejam definidos pela administração.
@@ -231,7 +246,9 @@ const Wallet = () => {
         </section>
       </div>
 
-      {showPackages && (
+      {PINKCOIN_PREVIEW_MODE && <PinkcoinPurchasePreview open={showPackages} onOpenChange={setShowPackages} returnFocusRef={purchaseButtonRef} />}
+
+      {!PINKCOIN_PREVIEW_MODE && showPackages && (
         <div className="fixed inset-0 z-[180] flex items-end justify-center bg-black/60 p-0 sm:items-center sm:p-4" onClick={() => setShowPackages(false)}>
           <section className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-t-lg bg-white sm:rounded-lg" onClick={(event) => event.stopPropagation()}>
             <header className="sticky top-0 flex items-center justify-between border-b border-gray-200 bg-white px-5 py-4">
@@ -260,7 +277,7 @@ const Wallet = () => {
         </div>
       )}
 
-      {selectedPackage && (
+      {!PINKCOIN_PREVIEW_MODE && selectedPackage && (
         <PixPaymentModal
           isOpen
           onClose={() => setSelectedPackage(null)}
